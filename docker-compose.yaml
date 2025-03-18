@@ -9,18 +9,17 @@ services:
     ports:
       - "8080:8080"
   
-  post_cliente:
+  post_client:
     build:
       context: ./client
       dockerfile: post_client.dockerfile
-    image: post_cliente
+    image: post_client
     depends_on:
       - servidor
-
-  vehicle_cliente:
+  vehicle_client:
     build:
       context: ./client
       dockerfile: vehicle_client.dockerfile
-    image: vehicle_cliente
+    image: vehicle_client
     depends_on:
       - servidor
