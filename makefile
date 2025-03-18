@@ -1,5 +1,5 @@
 build_server:
-	sudo docker build -t servidor -f servidor.dockerfile .
+	sudo docker build -t servidor -f server/servidor.dockerfile .
 run_server: 
 	sudo docker run -p 8080:8080 servidor
 build_client:

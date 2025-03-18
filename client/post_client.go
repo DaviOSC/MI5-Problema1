@@ -1,4 +1,4 @@
-package main
+    package main
 
 import (
     "bufio"
@@ -7,6 +7,7 @@ import (
     "os"
 )
 
+var tipo = "post" 
 func main() {
     // Conectar ao servidor pelo endereço localhost
     conn, err := net.Dial("tcp", "localhost:8080")
@@ -15,6 +16,9 @@ func main() {
         return
     }
     defer conn.Close()
+
+    fmt.Fprintln(conn, tipo)
+
 
     // Lendo a resposta do servidor
     mensagem, _ := bufio.NewReader(conn).ReadString('\n')

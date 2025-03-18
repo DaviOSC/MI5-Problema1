@@ -5,6 +5,10 @@ import (
     "fmt"
     "net"
 )
+type CustomConn struct {
+    net.Conn
+    tipo string
+}
 
 func main() {
     endereco := ":8080" // Alterado para escutar em todas as interfaces
@@ -14,16 +18,19 @@ func main() {
 
     for {
         conn, _ := listener.Accept()
-        go handleConnection(conn)
+        customConn := CustomConn{Conn: conn, tipo: "desconhecido"}
+        go handleConnection(customConn)
     }
 }
 
-func handleConnection(conn net.Conn) {
+func handleConnection(conn CustomConn) {
     defer conn.Close()
-    fmt.Fprintln(conn, "Conexão estabelecida com sucesso!")
-	fmt.Println("Cliente conectado:", conn.RemoteAddr())
-
     scanner := bufio.NewScanner(conn)
+    if scanner.Scan() {
+        conn.tipo = scanner.Text() // Define o tipo com base na primeira mensagem
+    }
+    fmt.Fprintln(conn, "Conexão estabelecida com sucesso!")
+	fmt.Println("Cliente ",conn.tipo,"conectado:", conn.RemoteAddr())
     for scanner.Scan() {
         text := scanner.Text()
 		if text == "exit" {
