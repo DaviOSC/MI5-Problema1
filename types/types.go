@@ -1,0 +1,68 @@
+package types
+
+import (
+	"encoding/json"
+)
+
+type Payment struct {
+	PaymentID int `json:"payment_id"`
+	From      int `json:"from"` // CarID que pagou a estação
+	To        int `json:"to"`   // StationID que recebeu o pagamento
+	Value     int `json:"value"`
+	TimeStamp int `json:"timestamp"`
+}
+
+type Car struct {
+	CarID             int   `json:"car_id"`
+	CoordX            int   `json:"coord_x"`
+	CoordY            int   `json:"coord_y"`
+	BatteryLevel      int   `json:"battery_level"`      // 0-100
+	RecomendedStation int   `json:"recomended_station"` // StationID
+	ReservedStation   int   `json:"reserved_station"`   // StationID
+	PaymentHistory    []int `json:"payment_history"`    // Slice de PaymentID
+}
+
+type Station struct {
+	StationID  int   `json:"station_id"`
+	CoordX     int   `json:"coord_x"`
+	CoordY     int   `json:"coord_y"`
+	CarsInLine []int `json:"cars_in_line"` // Slice de CarID
+}
+
+type Requests int
+
+const (
+	RegisterCar           Requests = iota // Registrar carro, passando ID, coordenadas e nível da bateria: carro -> server
+	RegisterStation                       // Registrar estação, passando ID e coordenadas: estação -> server
+	GetRecommendedStation                 // Obter a estação recomendada para um carro, passando suas coordenadas: carro -> server
+	IsStationAvailable                    // Verificar se uma estação está disponível, passando seu ID: server -> estações
+	ReserveStation                        // Reservar uma estação, passando o ID do carro e o ID da estação: carro -> server
+	RechargeCar                           // Recarregar um carro, passando o ID do carro e o ID da estação: carro -> server
+	GeneratePayment                       // Gerar um pagamento, passando o ID do pagamento e o valor: server -> carro
+	PayRecharge                           // Pagar uma recarga, passando o ID do pagamento: carro -> server(Obs:fazer antes da reserva o pagamento)
+)
+
+var RequestsNames = map[Requests]string{
+	RegisterCar:           "register_car",
+	RegisterStation:       "register_station",
+	GetRecommendedStation: "get_recommended_station",
+	IsStationAvailable:    "is_station_available",
+	ReserveStation:        "reserve_station",
+	RechargeCar:           "recharge_car",
+	GeneratePayment:       "generate_payment",
+	PayRecharge:           "pay_recharge",
+}
+
+func (r Requests) String() string {
+	return RequestsNames[r]
+}
+
+type Message struct {
+	Req  Requests        `json:"request"`
+	Data json.RawMessage `json:"data"`
+}
+
+type ResponseMessage struct {
+	Status string          `json:"status"`
+	Data   json.RawMessage `json:"data"`
+}
