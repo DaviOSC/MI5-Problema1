@@ -1,0 +1,20 @@
+[
+  {
+    "station_id": 1,
+    "coord_x": 2,
+    "coord_y": 2,
+    "cars_in_line": null
+  },
+  {
+    "station_id": 10,
+    "coord_x": 50,
+    "coord_y": 100,
+    "cars_in_line": null
+  },
+  {
+    "station_id": 11,
+    "coord_x": 25,
+    "coord_y": 50,
+    "cars_in_line": null
+  }
+]
