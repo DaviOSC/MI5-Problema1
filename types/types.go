@@ -1,9 +1,5 @@
 package types
 
-import (
-	"encoding/json"
-)
-
 type Payment struct {
 	PaymentID int `json:"payment_id"`
 	From      int `json:"from"` // CarID que pagou a estação
@@ -13,15 +9,15 @@ type Payment struct {
 }
 
 type Car struct {
-	CarID             int   `json:"car_id"`
-	User			  string   `json:"user"`
-	Password		  string   `json:"password"`
-	CoordX            int   `json:"coord_x"`
-	CoordY            int   `json:"coord_y"`
-	BatteryLevel      int   `json:"battery_level"`      // 0-100
-	RecomendedStation int   `json:"recomended_station"` // StationID
-	ReservedStation   int   `json:"reserved_station"`   // StationID
-	PaymentHistory    []int `json:"payment_history"`    // Slice de PaymentID
+	CarID             int    `json:"car_id"`
+	User              string `json:"user"`
+	Password          string `json:"password"`
+	CoordX            int    `json:"coord_x"`
+	CoordY            int    `json:"coord_y"`
+	BatteryLevel      int    `json:"battery_level"`      // 0-100
+	RecomendedStation int    `json:"recomended_station"` // StationID
+	ReservedStation   int    `json:"reserved_station"`   // StationID
+	PaymentHistory    []int  `json:"payment_history"`    // Slice de PaymentID
 }
 
 type Station struct {
@@ -43,6 +39,7 @@ const (
 	GeneratePayment                       // Gerar um pagamento, passando o ID do pagamento e o valor: server -> carro
 	PayRecharge                           // Pagar uma recarga, passando o ID do pagamento: carro -> server(Obs:fazer antes da reserva o pagamento)
 	UserLogin
+	ListStations
 )
 
 var RequestsNames = map[Requests]string{
@@ -54,20 +51,43 @@ var RequestsNames = map[Requests]string{
 	RechargeCar:           "recharge_car",
 	GeneratePayment:       "generate_payment",
 	PayRecharge:           "pay_recharge",
+	UserLogin:             "user_login",
+	ListStations:          "list_stations",
+}
+
+type ResponseStatus int
+
+const (
+	Success ResponseStatus = iota
+	Error
+)
+
+var ResposeStatusNames = map[ResponseStatus]string{
+	Success: "success",
+	Error:   "error",
+}
+
+func (r ResponseStatus) String() string {
+	return ResposeStatusNames[r]
 }
 
 func (r Requests) String() string {
 	return RequestsNames[r]
 }
 
+// type Message struct {
+// 	Req  Requests `json:"request"`
+// 	Data any      `json:"data"`
+// }
+
 type Message struct {
-	Req  Requests        `json:"request"`
-	Data json.RawMessage `json:"data"`
+	Req     Requests `json:"request"`
+	Car     Car      `json:"car"`
+	Station Station  `json:"station"`
+	Payment Payment  `json:"payment"`
 }
 
 type ResponseMessage struct {
-	Status string          `json:"status"`
-	Data   json.RawMessage `json:"data"`
+	Status ResponseStatus `json:"status"`
+	Data   any            `json:"data"`
 }
-
-

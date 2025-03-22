@@ -1,17 +1,19 @@
 [
   {
-    "car_id": 1,
-    "user" : "teste",
-    "password": "12345",
-    "coord_x": 1,
-    "coord_y": 1,
-    "battery_level": 1,
+    "car_id": 401,
+    "user": "401",
+    "password": "401",
+    "coord_x": 401,
+    "coord_y": 401,
+    "battery_level": 401,
     "recomended_station": 0,
     "reserved_station": 0,
     "payment_history": null
   },
   {
-    "car_id": 2,
+    "car_id": 7,
+    "user": "",
+    "password": "",
     "coord_x": 2,
     "coord_y": 2,
     "battery_level": 2,
@@ -21,6 +23,8 @@
   },
   {
     "car_id": 20,
+    "user": "",
+    "password": "",
     "coord_x": 20,
     "coord_y": 40,
     "battery_level": 80,
@@ -30,6 +34,8 @@
   },
   {
     "car_id": 12,
+    "user": "",
+    "password": "",
     "coord_x": 12,
     "coord_y": 54,
     "battery_level": 852,
@@ -39,9 +45,22 @@
   },
   {
     "car_id": 10,
+    "user": "",
+    "password": "",
     "coord_x": 15,
     "coord_y": 16,
     "battery_level": 28,
+    "recomended_station": 0,
+    "reserved_station": 0,
+    "payment_history": null
+  },
+  {
+    "car_id": 5,
+    "user": "5",
+    "password": "5",
+    "coord_x": 5,
+    "coord_y": 5,
+    "battery_level": 5,
     "recomended_station": 0,
     "reserved_station": 0,
     "payment_history": null

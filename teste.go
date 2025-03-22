@@ -1,15 +1,28 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 )
 
+type estrutura struct {
+	Teste  int `json:"teste"`
+	Teste2 any `json:"teste2"`
+}
+
+type outra_estrutura struct {
+	Texto string `json:"texto"`
+}
+
+func teste(arg estrutura) {
+	fmt.Println(arg.Teste2.(map[string]interface{})["texto"])
+}
+
 func main() {
-	fmt.Println(`Escolha uma opção:
-	1 - Registrar um Carro
-	2 - Pedir Recomendação de Estação
-	3 - Reservar Estação
-	4 - Recarregar Carro
-	5 - Pagar Recarga
-	6 - Sair`)
+	oe := outra_estrutura{Texto: "Tomar no cu"}
+	a := estrutura{Teste: 1, Teste2: oe}
+	b, _ := json.Marshal(a)
+	var c estrutura = estrutura{}
+	json.Unmarshal(b, &c)
+	teste(c)
 }

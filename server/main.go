@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"main/types"
@@ -66,132 +65,104 @@ func (s *Server) readLoop(conn net.Conn) {
 		switch message.Req {
 
 		case types.RegisterCar:
-			var car types.Car
-			err := json.Unmarshal(message.Data, &car)
+			car := message.Car
+			// if !ok {
+			// 	log.Fatal("Erro ao converter os dados da mensagem para types.Car")
+			// }
+			// err := json.Unmarshal(data, &car)
+			// if err != nil {
+			// 	responseMessage.Status = types.Error
+			// } else {
+			// Salvar o carro em arquivo JSON
+			err = s.saveCarToFile(car)
 			if err != nil {
-				responseMessage.Status = "Erro ao decodificar dados do carro"
+				responseMessage.Status = types.Error
 			} else {
-				// Salvar o carro em arquivo JSON
-				err = s.saveCarToFile(car)
-				if err != nil {
-					responseMessage.Status = "Erro ao salvar o carro"
-				} else {
-					responseMessage.Status = "Carro registrado com sucesso"
-				}
+				responseMessage.Data = car
+				responseMessage.Status = types.Success
 			}
-
 		case types.RegisterStation:
-			var station types.Station
-			err := json.Unmarshal(message.Data, &station)
+			station := message.Station
+			// err := json.Unmarshal(data, &station)
+			// if err != nil {
+			// 	responseMessage.Status = types.Error
+			// 	fmt.Print("Erro ao decodificar o JSON")
+			// } else {
+			// Salvar a estação em arquivo JSON
+			err = s.saveStationToFile(station)
 			if err != nil {
-				responseMessage.Status = "Erro ao decodificar dados da estação"
+				responseMessage.Status = types.Error
+				fmt.Println("Erro ao salvar a estação")
 			} else {
-				// Salvar a estação em arquivo JSON
-				err = s.saveStationToFile(station)
-				if err != nil {
-					responseMessage.Status = "Erro ao salvar a estação"
-				} else {
-					responseMessage.Status = "Estação registrada com sucesso"
-				}
+				responseMessage.Data = station
+				responseMessage.Status = types.Success
+				fmt.Println("Estação registrada com sucesso")
 			}
 		case types.UserLogin:
-			var loginData map[string]string
-			err := json.Unmarshal(message.Data, &loginData)
+			loginData := message.Car
+			// err := json.Unmarshal(data, &loginData)
+			// if err != nil {
+			// 	responseMessage.Status = types.Error
+			// 	fmt.Println("Erro ao decodificar dados de login")
+			// } else {
+			cars, err := s.listCarsFromFile()
 			if err != nil {
-				responseMessage.Status = "Erro ao decodificar dados de login"
+				responseMessage.Status = types.Error
+				fmt.Println("Erro ao acessar os dados dos carros")
 			} else {
-				cars, err := s.listCarsFromFile()
-				if err != nil {
-					responseMessage.Status = "Erro ao acessar os dados dos carros"
-				} else {
-					valid := false
-					for _, car := range cars {
-						if car.User == loginData["user"] && car.Password == loginData["password"] {
-							valid = true
-							responseMessage.Status = "Login bem-sucedido"
-							responseMessage.Data, _ = json.Marshal(car)
-							break
-						}
-					}
-					if !valid {
-						responseMessage.Status = "Usuário ou senha inválidos"
+				valid := false
+				for _, car := range cars {
+					if car.User == loginData.User && car.Password == loginData.Password {
+						valid = true
+						responseMessage.Status = types.Success
+						fmt.Println("Login bem-sucedido")
+						responseMessage.Data = car
+						break
 					}
 				}
+				if !valid {
+					responseMessage.Status = types.Error
+					fmt.Println("Usuário ou senha inválidos")
+				}
 			}
+		case types.ListStations:
+			stations, err := s.listStationsFromFile()
+			if err != nil {
+				responseMessage.Status = types.Error
+				fmt.Println("Erro ao listar estações")
+			} else {
+				responseMessage.Status = types.Success
+				fmt.Println("Estações listadas com sucesso")
+				responseMessage.Data = stations
+			}
+
 		case types.ReserveStation:
 
 		case types.RechargeCar:
 
 		case types.PayRecharge:
 
-		// case "get_car":
-		// 	// Consultar o carro no arquivo JSON
-		// 	car, err := s.getCarFromFile(message.ID)
-		// 	if err != nil {
-		// 		responseMessage.Status = "Carro não encontrado"
-		// 	} else {
-		// 		responseMessage.Status = "Carro encontrado"
-		// 		responseMessage.Data = car
-		// 	}
-
-		// case "get_station":
-		// 	// Consultar a estação no arquivo JSON
-		// 	station, err := s.getStationFromFile(message.ID)
-		// 	if err != nil {
-		// 		responseMessage.Status = "Estação não encontrada"
-		// 	} else {
-		// 		responseMessage.Status = "Estação encontrada"
-		// 		responseMessage.Data = station
-		// 	}
-
-		// case "list_cars":
-		// 	// Listar todos os carros salvos em arquivos JSON
-		// 	cars, err := s.listCarsFromFile()
-		// 	if err != nil {
-		// 		responseMessage.Status = "Erro ao listar carros"
-		// 	} else {
-		// 		responseMessage.Status = "Lista de carros"
-		// 		responseMessage.Data = cars
-		// 	}
-
-		// case "list_stations":
-		// 	// Listar todas as estações salvas em arquivos JSON
-		// 	stations, err := s.listStationsFromFile()
-		// 	if err != nil {
-		// 		responseMessage.Status = "Erro ao listar estações"
-		// 	} else {
-		// 		responseMessage.Status = "Lista de estações"
-		// 		responseMessage.Data = stations
-		// 	}
-		// case "teste":
-		// 	// Consultar o carro no arquivo JSON
-		// 	car, err := s.getCarFromFile(message.ID)
-		// 	fmt.Printf("Carro: %+v\n X: %+v\n Y: %+v\n", car.CarID, car.CoordX, car.CoordY)
-		// 	if err != nil {
-		// 		responseMessage.Status = "Carro não encontrado"
-		// 	} else {
-		// 		responseMessage.Status = "Carro encontrado"
-		// 		responseMessage.Data = car
-		// 	}
 		case types.GetRecommendedStation:
-			car := types.Car{}
-			err := json.Unmarshal(message.Data, &car)
-			if err != nil {
-				responseMessage.Status = "Erro ao decodificar dados do carro"
-			}
+			car := message.Car
+			// err := json.Unmarshal(data, &car)
+			// if err != nil {
+			// 	responseMessage.Status = types.Error
+			// 	fmt.Println("Erro ao decodificar dados do carro")
+			// }
+			// fmt.Println(car.CarID)
 			station, err := s.getBestStation(car.CarID)
 			if err != nil {
-				responseMessage.Status = "Estação não encontrada, na requisição GetRecommendedStation"
+				responseMessage.Status = types.Error
+				fmt.Println("Estação não encontrada, na requisição GetRecommendedStation")
 			} else {
-				responseMessage.Status = "Estação encontrada"
-				responseMessage.Data, err = json.Marshal(station)
-				if err != nil {
-					responseMessage.Status = "Erro ao serializar estação, na requisição GetRecommendedStation"
-				}
+				responseMessage.Data = station
+				responseMessage.Status = types.Success
+				fmt.Println("Estação encontrada")
 			}
 
 		default:
-			responseMessage.Status = "Escolha desconhecida"
+			responseMessage.Status = types.Error
+			fmt.Println("Requisição inválida")
 		}
 
 		// Enviar a resposta para o cliente
@@ -292,7 +263,7 @@ func (s *Server) getCarFromFile(id int) (types.Car, error) {
 			return car, nil
 		}
 	}
-	return types.Car{}, fmt.Errorf("carro não encontrado")
+	return types.Car{}, fmt.Errorf("Carro não encontrado")
 }
 
 func (s *Server) getStationFromFile(id int) (types.Station, error) {
@@ -305,7 +276,7 @@ func (s *Server) getStationFromFile(id int) (types.Station, error) {
 			return station, nil
 		}
 	}
-	return types.Station{}, fmt.Errorf("estação não encontrada")
+	return types.Station{}, fmt.Errorf("Estação não encontrada")
 }
 
 func (s *Server) getBestStation(carId int) (types.Station, error) {
@@ -325,45 +296,18 @@ func (s *Server) getBestStation(carId int) (types.Station, error) {
 		}
 	}
 
-	if car.CarID == 0 {
-		return types.Station{}, errors.New("car not found")
-	}
-
-	// Inicializar as variáveis para calcular a estação mais próxima
 	var bestStation types.Station
-	minDistance := math.MaxFloat64 // Um valor muito grande, que será substituído
+	minDistance := math.MaxFloat64
 
-	// Função para calcular a distância entre dois pontos geográficos
-	// Usando a fórmula de Haversine
-	haversine := func(lat1, lon1, lat2, lon2 float64) float64 {
-		const R = 6371 // Raio da Terra em km
-		lat1Rad := lat1 * math.Pi / 180
-		lon1Rad := lon1 * math.Pi / 180
-		lat2Rad := lat2 * math.Pi / 180
-		lon2Rad := lon2 * math.Pi / 180
-
-		dlat := lat2Rad - lat1Rad
-		dlon := lon2Rad - lon1Rad
-
-		a := math.Sin(dlat/2)*math.Sin(dlat/2) + math.Cos(lat1Rad)*math.Cos(lat2Rad)*
-			math.Sin(dlon/2)*math.Sin(dlon/2)
-		c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
-
-		return R * c // Distância em km
-	}
-
-	// Calcular a distância entre o carro e todas as estações
 	for _, station := range stations {
-		distance := haversine(float64(car.CoordX), float64(car.CoordY), float64(station.CoordX), float64(station.CoordY))
+		distance := math.Sqrt(math.Pow(float64(car.CoordX-station.CoordX), 2) + math.Pow(float64(car.CoordY-station.CoordY), 2))
 
 		if distance < minDistance {
 			minDistance = distance
 			bestStation = station
 		}
 	}
-
 	return bestStation, nil
-
 }
 
 func main() {

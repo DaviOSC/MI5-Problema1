@@ -19,41 +19,14 @@ func main() {
 	}
 	// Garantir que a conexão será fechada ao final da execução
 	defer conn.Close()
+
 	for {
-		var username, password string
-		fmt.Print("Digite o usuário: ")
-		fmt.Scanln(&username)
-		fmt.Print("Digite a senha: ")
-		fmt.Scanln(&password)
-
-		loginMessage, err := HandleLogin(username, password)
+		car, err = HandleLogin(conn)
 		if err != nil {
-			log.Fatal("Erro ao preparar a mensagem de login:", err)
-		}
-
-		buf, err := json.Marshal(loginMessage)
-		if err != nil {
-			log.Fatal("Erro ao serializar a mensagem de login:", err)
-		}
-		_, err = conn.Write(buf)
-		if err != nil {
-			log.Fatal("Erro ao enviar a mensagem de login:", err)
-		}
-
-		var response types.ResponseMessage
-		decoder := json.NewDecoder(conn)
-		err = decoder.Decode(&response)
-		if err != nil {
-			log.Fatal("Erro ao decodificar a resposta do servidor:", err)
-		}
-
-		if response.Status != "Login bem-sucedido" {
-			fmt.Println("Erro no login:", response.Status)			
-		}else {
-			fmt.Println(response.Status)
+			fmt.Println("Erro ao fazer login:", err)
+		} else {
 			break
 		}
-
 	}
 	for {
 		// Menu para o cliente escolher o que fazer
@@ -64,7 +37,8 @@ func main() {
 3 - Reservar Estação
 4 - Recarregar Carro
 5 - Pagar Recarga
-6 - Sair`)
+6 - Listar Estações
+7 - Sair`)
 		// Ler a escolha do usuário
 		fmt.Scanln(&choice)
 
@@ -73,7 +47,7 @@ func main() {
 		var err error
 		switch choice {
 		case "1":
-			message, car, err = HandleRegisterCar()
+			message, err = HandleRegisterCar()
 			if err != nil {
 				log.Fatal("Erro ao registrar o carro:", err)
 			}
@@ -98,7 +72,12 @@ func main() {
 				log.Fatal("Erro ao registrar o carro:", err)
 			}
 		case "6":
-			fmt.Println("Saindo...")
+			message, err = HandleListStations()
+			if err != nil {
+				log.Fatal("Erro ao listar as estações:", err)
+			}
+		case "7":
+			log.Fatal("Saindo...")
 		default:
 			fmt.Println("Opção inválida.")
 			continue
