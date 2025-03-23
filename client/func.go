@@ -83,37 +83,30 @@ func HandleLogin(conn net.Conn) (types.Car, error) {
 	buf, err := json.Marshal(message)
 	if err != nil {
 		fmt.Println("Erro ao serializar a mensagem de login:", err)
-		return car, err
+		return types.Car{}, err
 	}
 	_, err = conn.Write(buf)
 	if err != nil {
 		fmt.Println("Erro ao enviar a mensagem de login:", err)
-		return car, err
+		return types.Car{}, err
 	}
 
 	response, err := ReadResponse(conn)
 	if err != nil {
 		fmt.Println("Erro receber resposta do servidor:", err)
-		return car, err
+		return types.Car{}, err
 	}
 
-	if response.Status != types.Success {
-		fmt.Println("Erro no login:", response.Status)
-	} else {
-		data, ok := response.Data.([]byte)
-		if !ok {
-			fmt.Println("Erro ao converter os dados da resposta para []byte")
-			return car, err
-		}
-		json.Unmarshal(data, &car)
-		fmt.Println(response.Status.String())
+	if response.Status == types.Error {
+		return types.Car{}, fmt.Errorf("senha ou usuario invalidos")
 	}
-	return car, nil
+
+	return response.Car, nil
 }
 
-func ReadResponse(conn net.Conn) (types.ResponseMessage, error) {
+func ReadResponse(conn net.Conn) (types.Message, error) {
 	decoder := json.NewDecoder(conn)
-	responseMessage := types.ResponseMessage{}
+	responseMessage := types.Message{}
 	err := decoder.Decode(&responseMessage)
 	if err != nil {
 		fmt.Println("Erro ao decodificar JSON:", err)

@@ -60,11 +60,13 @@ type ResponseStatus int
 const (
 	Success ResponseStatus = iota
 	Error
+	Fatal
 )
 
 var ResposeStatusNames = map[ResponseStatus]string{
 	Success: "success",
 	Error:   "error",
+	Fatal:   "fatal",
 }
 
 func (r ResponseStatus) String() string {
@@ -75,19 +77,13 @@ func (r Requests) String() string {
 	return RequestsNames[r]
 }
 
-// type Message struct {
-// 	Req  Requests `json:"request"`
-// 	Data any      `json:"data"`
-// }
-
 type Message struct {
-	Req     Requests `json:"request"`
-	Car     Car      `json:"car"`
-	Station Station  `json:"station"`
-	Payment Payment  `json:"payment"`
-}
-
-type ResponseMessage struct {
-	Status ResponseStatus `json:"status"`
-	Data   any            `json:"data"`
+	Req         Requests       `json:"request,omitempty"`
+	Status      ResponseStatus `json:"status,omitempty"`
+	Car         Car            `json:"car,omitempty"`
+	Station     Station        `json:"station,omitempty"`
+	Payment     Payment        `json:"payment,omitempty"`
+	CarList     []Car          `json:"car_list,omitempty"`
+	StationList []Station      `json:"station_list,omitempty"`
+	PaymentList []Payment      `json:"payment_list,omitempty"`
 }

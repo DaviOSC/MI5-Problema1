@@ -60,7 +60,29 @@
     "password": "5",
     "coord_x": 5,
     "coord_y": 5,
-    "battery_level": 5,
+    "battery_level": 6,
+    "recomended_station": 0,
+    "reserved_station": 0,
+    "payment_history": null
+  },
+  {
+    "car_id": 69,
+    "user": "69",
+    "password": "69",
+    "coord_x": 69,
+    "coord_y": 69,
+    "battery_level": 69,
+    "recomended_station": 0,
+    "reserved_station": 0,
+    "payment_history": null
+  },
+  {
+    "car_id": 9,
+    "user": "9",
+    "password": "9",
+    "coord_x": 9,
+    "coord_y": 9,
+    "battery_level": 9,
     "recomended_station": 0,
     "reserved_station": 0,
     "payment_history": null

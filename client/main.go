@@ -1,0 +1,192 @@
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"log"
+	"main/types"
+	"net"
+)
+
+type Client struct {
+	conn net.Conn
+	car  types.Car
+}
+
+func NewClient() *Client {
+	// Conectar ao servidor
+	conn, err := net.Dial("tcp", "localhost:8080")
+	if err != nil {
+		// Se houver um erro ao conectar, o programa será encerrado
+		log.Fatal("Erro ao conectar ao servidor:", err)
+	}
+	// Garantir que a conexão será fechada ao final da execução
+	return &Client{conn: conn, car: types.Car{}}
+}
+
+func (c *Client) SendMessage(message types.Message) error {
+	// Enviar a mensagem ao servidor
+	buf, err := json.Marshal(message)
+	if err != nil {
+		// Se houver um erro ao serializar a mensagem, o programa será encerrado
+		log.Fatal("Erro ao serializar a mensagem:", err)
+	}
+
+	_, err = c.conn.Write(buf)
+	if err != nil {
+		// Se houver um erro ao enviar os dados, o programa será encerrado
+		log.Fatal("Erro ao enviar dados:", err)
+	}
+
+	return err
+}
+
+func (c *Client) ReadResponse() (types.Message, error) {
+	// Receber a resposta do servidor
+	var responseMessage types.Message
+	decoder := json.NewDecoder(c.conn)
+	err := decoder.Decode(&responseMessage)
+	if err != nil {
+		// Se houver um erro ao decodificar a resposta, o programa será encerrado
+		log.Fatal("Erro ao decodificar a resposta:", err)
+	}
+
+	return responseMessage, err
+}
+
+func main() {
+
+	client := NewClient()
+	defer client.conn.Close()
+
+	for {
+		car, err := HandleLogin(client.conn)
+		if err != nil {
+			fmt.Println("Erro ao fazer login:", err)
+		} else {
+			client.car = car
+			break
+		}
+	}
+
+	for {
+		// Menu para o cliente escolher o que fazer
+		var choice string
+		fmt.Println(`Escolha uma opção:
+1 - Registrar um Carro
+2 - Pedir Recomendação de Estação
+3 - Reservar Estação
+4 - Recarregar Carro
+5 - Pagar Recarga
+6 - Listar Estações
+7 - Sair`)
+		// Ler a escolha do usuário
+		fmt.Scanln(&choice)
+
+		// Processar a escolha
+		var message types.Message
+		var err error
+		switch choice {
+		case "1":
+			message, err = HandleRegisterCar()
+			if err != nil {
+				log.Fatal("Erro ao registrar o carro:", err)
+			}
+		case "2":
+			message, err = HandleGetRecommendedStation(client.car)
+			if err != nil {
+				log.Fatal("Erro ao registrar o carro:", err)
+			}
+		case "3":
+			message, err = HandleReserveStation(client.car)
+			if err != nil {
+				log.Fatal("Erro ao registrar o carro:", err)
+			}
+		case "4":
+			message, err = HandleRechargeCar(client.car)
+			if err != nil {
+				log.Fatal("Erro ao registrar o carro:", err)
+			}
+		case "5":
+			message, err = HandlePayRecharge(client.car)
+			if err != nil {
+				log.Fatal("Erro ao registrar o carro:", err)
+			}
+		case "6":
+			message, err = HandleListStations()
+			if err != nil {
+				log.Fatal("Erro ao listar as estações:", err)
+			}
+		case "7":
+			log.Fatal("Saindo...")
+		default:
+			fmt.Println("Opção inválida.")
+			continue
+		}
+
+		err = client.SendMessage(message)
+		if err != nil {
+			log.Fatal("Erro ao enviar mensagem:", err)
+		}
+
+		responseMessage := types.Message{}
+		responseMessage, err = client.ReadResponse()
+		if err != nil {
+			log.Fatal("Erro ao receber resposta:", err)
+		}
+
+		switch responseMessage.Req {
+		case types.RegisterCar:
+			if responseMessage.Status == types.Success {
+				fmt.Println("Carro registrado com sucesso.")
+			} else {
+				fmt.Println("Erro ao registrar o carro.")
+			}
+		case types.GetRecommendedStation:
+			if responseMessage.Status == types.Success {
+				fmt.Printf(
+					`ID da estação recomendada: %d, 
+Coordenadas: (x: %d, y: %d)`,
+					responseMessage.Station.StationID,
+					responseMessage.Station.CoordX, responseMessage.Station.CoordY,
+				)
+				fmt.Println()
+			} else {
+				fmt.Println("Erro ao obter a estação recomendada.")
+			}
+		case types.ReserveStation:
+			if responseMessage.Status == types.Success {
+				fmt.Println("Estação reservada com sucesso.")
+			} else {
+				fmt.Println("Erro ao reservar a estação.")
+			}
+		case types.RechargeCar:
+			if responseMessage.Status == types.Success {
+				fmt.Println("Carro recarregado com sucesso.")
+			} else {
+				fmt.Println("Erro ao recarregar o carro.")
+			}
+		case types.PayRecharge:
+			if responseMessage.Status == types.Success {
+				fmt.Println("Recarga paga com sucesso.")
+			} else {
+				fmt.Println("Erro ao pagar a recarga.")
+			}
+		case types.ListStations:
+			if responseMessage.Status == types.Success {
+				fmt.Println("Estações:")
+				for _, station := range responseMessage.StationList {
+					fmt.Printf(
+						`ID: %d
+Coordenadas: (x: %d, y: %d)`,
+						station.StationID, station.CoordX, station.CoordY,
+					)
+					fmt.Println()
+				}
+			}
+		default:
+			fmt.Println("Requisição da resposta inválida.")
+			continue
+		}
+	}
+}
