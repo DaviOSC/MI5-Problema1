@@ -44,6 +44,7 @@ const (
 	PayRecharge                           // Pagar uma recarga, passando o ID do pagamento: carro -> server(Obs:fazer antes da reserva o pagamento)
 	UserLogin
 	ListStations
+	PaymentHistory
 )
 
 var RequestsNames = map[Requests]string{
@@ -57,6 +58,7 @@ var RequestsNames = map[Requests]string{
 	PayRecharge:           "pay_recharge",
 	UserLogin:             "user_login",
 	ListStations:          "list_stations",
+	PaymentHistory:        "payment_history",
 }
 
 type ResponseStatus int

@@ -58,6 +58,12 @@ func HandleRechargeComplete(car types.Car) (types.Message, error) {
 		Car: car,
 	}, nil
 }
+func HandlePaymentHistory(car types.Car) (types.Message, error) {
+	return types.Message{
+		Req: types.PaymentHistory,
+		Car: car,
+	}, nil
+}
 
 // HandlePayRecharge lida com a requisição de pagamento de recarga
 func HandlePayRecharge(car types.Car) (types.Message, error) {
@@ -123,9 +129,78 @@ func HandleRegisterCarResponse(responseMessage types.Message) (types.Car, error)
 		return responseMessage.Car, fmt.Errorf("erro ao registrar carro")
 	}
 }
+func HandlePaymentHistoryResponse(responseMessage types.Message) (types.Car, error) {
+    if responseMessage.Status == types.Success {
+        fmt.Println("Histórico de pagamentos:")
+        for _, payment := range responseMessage.PaymentHistory {
+            fmt.Printf(
+                `ID do pagamento: %d
+De (CarID): %d
+Para (StationID): %d
+Valor: %d
+Timestamp: %d`, payment.PaymentID, payment.From, payment.To,
+				payment.Value, payment.TimeStamp,
+            )
+        }
+        return responseMessage.Car, nil
+    } else {
+        return responseMessage.Car, fmt.Errorf("erro ao listar pagamentos")
+    }
+}
 
-// func HandleGetRecmmendedStationResponse(responseMessage types.Message) (types.Car, error)
-// func HandleReserveStationResponse(responseMessage types.Message) (types.Car, error)
-// func HandleRechargeCompleteResponse(responseMessage types.Message) (types.Car, error)
-// func HandlePayRechargeResponse(responseMessage types.Message) (types.Car, error)
-// func HandleListStationsResponse(responseMessage types.Message) (types.Car, error)
+func HandleGetRecommendedStationResponse(responseMessage types.Message) (types.Car, error) {
+    if responseMessage.Status == types.Success {
+        fmt.Printf(
+            `ID da estação recomendada: %d, 
+Coordenadas: (x: %d, y: %d)`,
+            responseMessage.Station.StationID,
+            responseMessage.Station.CoordX, responseMessage.Station.CoordY,
+        )
+        fmt.Println()
+        return responseMessage.Car, nil
+    } else {
+        return responseMessage.Car, fmt.Errorf("Erro ao recomendar estação")
+    }
+}
+func HandleReserveStationResponse(responseMessage types.Message) (types.Car, error){
+	if responseMessage.Status == types.Success {
+		fmt.Println("Estação reservada com sucesso.")
+		return responseMessage.Car, nil
+	} else {
+		return responseMessage.Car, fmt.Errorf("erro ao reservar estação")
+	}
+}
+
+func HandleRechargeCompleteResponse(responseMessage types.Message) (types.Car, error){
+	if responseMessage.Status == types.Success {
+		fmt.Println("Recarga completa com sucesso.")
+		return responseMessage.Car, nil
+	} else {
+		return responseMessage.Car, fmt.Errorf("erro ao completar recarga")
+	}
+}
+
+func HandlePayRechargeResponse(responseMessage types.Message) (types.Car, error){
+	if responseMessage.Status == types.Success {
+		fmt.Println("Recarga paga com sucesso.")
+		return responseMessage.Car, nil
+	} else {
+		return responseMessage.Car, fmt.Errorf("erro ao pagar recarga")
+	}
+}
+func HandleListStationsResponse(responseMessage types.Message) (types.Car, error) {
+    if responseMessage.Status == types.Success {
+        fmt.Println("Estações:")
+        for _, station := range responseMessage.StationList {
+            fmt.Printf(
+                `ID: %d
+Coordenadas: (x: %d, y: %d)`,
+                station.StationID, station.CoordX, station.CoordY,
+            )
+            fmt.Println()
+        }
+        return types.Car{}, nil
+    } else {
+        return types.Car{}, fmt.Errorf("erro ao listar estações")
+    }
+}

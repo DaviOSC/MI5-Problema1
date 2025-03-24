@@ -97,27 +97,43 @@ func HandleReserveStation(message types.Message) types.Message {
 		if err != nil {
 			responseMessage.Status = types.Error
 			fmt.Printf("Estação não encontrada, na requisição ReserveStation, para o carro de id %d\n", message.Car.CarID)
+			return responseMessage
 		}
 	} else {
 		station, err = getStationFromFile(stationID)
 		if err != nil {
 			responseMessage.Status = types.Error
 			fmt.Printf("Estação não encontrada, na requisição ReserveStation, para a estação de id %d\n", stationID)
+			return responseMessage
 		}
 	}
-
+	//Verifica se o carro tá na fila
+	for _, carID := range station.CarList {
+        if carID == message.Car.CarID {
+            responseMessage.Status = types.Error
+            fmt.Printf("Erro: O carro com ID %d já está na fila da estação com ID %d.\n", message.Car.CarID, station.StationID)
+            return responseMessage
+        }
+    }
 	// Atualizando dados da estação e salvando em JSON
-	carList := append(station.CarList, message.Car.CarID)
-	station.CarList = carList
+	station.CarList = append(station.CarList, message.Car.CarID)
 	station.CarsWaiting += 1
 	err = saveStationToFile(station)
 	if err != nil {
 		responseMessage.Status = types.Error
+        fmt.Printf("Erro ao salvar a estação, na requisição ReserveStation, para a estação de id %d\n", station.StationID)
+		return responseMessage
 	}
-
 	message.Car.ReservedStation = station.StationID
+	
 	responseMessage.Car = message.Car
-
+	err = saveCarToFile(message.Car)
+		if err != nil {
+			responseMessage.Status = types.Error
+			fmt.Printf("Erro ao salvar o carro, na requisição ReserveStation, para o carro de id %d\n", message.Car.CarID)
+			return responseMessage
+		}
+		
 	return responseMessage
 }
 
@@ -128,9 +144,11 @@ func HandlePayRecharge(message types.Message) types.Message {
 	if err != nil {
 		responseMessage.Status = types.Error
 		fmt.Printf("Estação não encontrada, na requisição PayRecharge, para a estação de id %d\n", stationID)
+		return responseMessage
 	}
 	fmt.Println(station.CarList)
 	fmt.Println(len(station.CarList))
+
 	if station.InUseBy == 0 && station.CarList[0] == message.Car.CarID {
 		station.InUseBy = message.Car.CarID
 		station.CarsWaiting -= 1
@@ -139,6 +157,7 @@ func HandlePayRecharge(message types.Message) types.Message {
 		if err != nil {
 			responseMessage.Status = types.Error
 			fmt.Printf("Erro ao salvar a estação, na requisição PayRecharge, para a estação de id %d\n", stationID)
+			return responseMessage
 		}
 		// TODO simular pagamento
 		responseMessage.Car = message.Car
@@ -146,6 +165,7 @@ func HandlePayRecharge(message types.Message) types.Message {
 		if err != nil {
 			responseMessage.Status = types.Error
 			fmt.Printf("Erro ao salvar o carro, na requisição PayRecharge, para o carro de id %d\n", message.Car.CarID)
+			return responseMessage
 		}
 	} else {
 		responseMessage.Status = types.Error
@@ -153,6 +173,16 @@ func HandlePayRecharge(message types.Message) types.Message {
 	}
 
 	return responseMessage
+}
+
+func HandlePaymentHistory(message types.Message) types.Message {
+	car := message.Car
+	responseMessage := types.Message{Req: types.PaymentHistory}
+
+	payments := []types.Payment{}
+	responseMessage.Res
+	return responseMessage
+
 }
 
 func HandleGetRecommendedStation(message types.Message) types.Message {
@@ -197,11 +227,13 @@ func HandleRechargeComplete(message types.Message) types.Message {
 	if err != nil {
 		responseMessage.Status = types.Error
 		fmt.Printf("Erro ao salvar a estação, na requisição RechargeComplete, para a estação de id %d\n", stationID)
+		return responseMessage
 	}
 	err = saveCarToFile(car)
 	if err != nil {
 		responseMessage.Status = types.Error
 		fmt.Printf("Erro ao salvar o carro, na requisição RechargeComplete, para o carro de id %d\n", car.CarID)
+		return responseMessage
 	}
 
 	return responseMessage
@@ -339,6 +371,7 @@ func getBestStation(carId int) (types.Station, error) {
 		}
 	}
 
+	//TODO verificação de carros na fila, e de tempo de espera 
 	var bestStation types.Station
 	minDistance := math.MaxFloat64
 

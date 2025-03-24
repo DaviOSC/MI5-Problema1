@@ -79,7 +79,8 @@ func main() {
 4 - Recarregar Carro
 5 - Pagar Recarga
 6 - Listar Estações
-7 - Sair`)
+7 - Listar Histórico de Recargas
+8 - Sair`)
 		// Ler a escolha do usuário
 		fmt.Scanln(&choice)
 
@@ -118,6 +119,11 @@ func main() {
 				log.Fatal("Erro ao listar as estações:", err)
 			}
 		case "7":
+			message, err = HandlePaymentHistory(client.car)
+			if err != nil {
+				log.Fatal("Erro ao listar o histórico de pagamentos:", err)
+			}
+		case "8":
 			log.Fatal("Saindo...")
 		default:
 			fmt.Println("Opção inválida.")
@@ -135,6 +141,7 @@ func main() {
 			log.Fatal("Erro ao receber resposta:", err)
 		}
 
+
 		switch responseMessage.Req {
 		case types.RegisterCar:
 			client.car, err = HandleRegisterCarResponse(responseMessage)
@@ -142,46 +149,34 @@ func main() {
 				fmt.Println("Erro:", err)
 			}
 		case types.GetRecommendedStation:
-			if responseMessage.Status == types.Success {
-				fmt.Printf(
-					`ID da estação recomendada: %d, 
-Coordenadas: (x: %d, y: %d)`,
-					responseMessage.Station.StationID,
-					responseMessage.Station.CoordX, responseMessage.Station.CoordY,
-				)
-				fmt.Println()
-			} else {
-				fmt.Println("Erro ao obter a estação recomendada.")
+			client.car, err = HandleGetRecommendedStationResponse(responseMessage)
+			if err != nil {
+				fmt.Println("Erro:", err)
 			}
 		case types.ReserveStation:
-			if responseMessage.Status == types.Success {
-				fmt.Println("Estação reservada com sucesso.")
-			} else {
-				fmt.Println("Erro ao reservar a estação.")
+			client.car, err = HandleReserveStationResponse(responseMessage)
+			if err != nil {
+				fmt.Println("Erro:", err)
 			}
 		case types.RechargeComplete:
-			if responseMessage.Status == types.Success {
-				fmt.Println("Carro recarregado com sucesso.")
-			} else {
-				fmt.Println("Erro ao recarregar o carro.")
+			client.car, err = HandleRechargeCompleteResponse(responseMessage)
+			if err != nil {
+				fmt.Println("Erro:", err)
 			}
 		case types.PayRecharge:
-			if responseMessage.Status == types.Success {
-				fmt.Println("Recarga paga com sucesso.")
-			} else {
-				fmt.Println("Erro ao pagar a recarga.")
+			client.car, err = HandlePayRechargeResponse(responseMessage)
+			if err != nil {
+				fmt.Println("Erro:", err)
 			}
 		case types.ListStations:
-			if responseMessage.Status == types.Success {
-				fmt.Println("Estações:")
-				for _, station := range responseMessage.StationList {
-					fmt.Printf(
-						`ID: %d
-Coordenadas: (x: %d, y: %d)`,
-						station.StationID, station.CoordX, station.CoordY,
-					)
-					fmt.Println()
-				}
+			client.car, err = HandleListStationsResponse(responseMessage)
+			if err != nil {
+				fmt.Println("Erro:", err)
+			}
+		case types.PaymentHistory:
+			client.car, err = HandlePaymentHistoryResponse(responseMessage)
+			if err != nil {
+				fmt.Println("Erro:", err)
 			}
 		default:
 			fmt.Println("Requisição da resposta inválida.")

@@ -102,5 +102,31 @@
     "pix_code": 0,
     "credit_card_number": 0,
     "payment_history": null
+  },
+  {
+    "car_id": 0,
+    "user": "",
+    "password": "",
+    "coord_x": 0,
+    "coord_y": 0,
+    "battery_level": 0,
+    "recomended_station": 0,
+    "reserved_station": 0,
+    "pix_code": 0,
+    "credit_card_number": 0,
+    "payment_history": null
+  },
+  {
+    "car_id": 123,
+    "user": "1",
+    "password": "1",
+    "coord_x": 23,
+    "coord_y": 32,
+    "battery_level": 50,
+    "recomended_station": 0,
+    "reserved_station": 0,
+    "pix_code": 0,
+    "credit_card_number": 0,
+    "payment_history": null
   }
 ]
