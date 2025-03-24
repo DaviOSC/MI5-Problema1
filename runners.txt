@@ -1,9 +1,0 @@
-build server
-- sudo docker build -t servidor -f servidor.dockerfile .
-run server 
-- sudo docker run -p 8080:8080 servidor
-
-build client
-- sudo docker build -t cliente -f client.dockerfile .
-run client
-- sudo docker run -it --network="host" cliente

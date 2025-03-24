@@ -1,0 +1,32 @@
+[
+  {
+    "car_id": 401,
+    "user": "401",
+    "password": "401",
+    "coord_x": 401,
+    "coord_y": 401,
+    "battery_level": 401,
+    "recomended_station": 0,
+    "reserved_station": 0
+  },
+  {
+    "car_id": 7,
+    "user": "teste",
+    "password": "12345",
+    "coord_x": 2,
+    "coord_y": 2,
+    "battery_level": 2,
+    "recomended_station": 0,
+    "reserved_station": 2
+  },
+  {
+    "car_id": 10,
+    "user": "carro10",
+    "password": "senha10",
+    "coord_x": 100,
+    "coord_y": 200,
+    "battery_level": 50,
+    "recomended_station": 0,
+    "reserved_station": 0
+  }
+]

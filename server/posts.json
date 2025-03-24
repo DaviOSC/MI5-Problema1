@@ -1,0 +1,23 @@
+[
+  {
+    "station_id": 1,
+    "name": "Posto A",
+    "coord_x": 900,
+    "coord_y": 800,
+    "is_reserved": false
+  },
+  {
+    "station_id": 2,
+    "name": "Posto B",
+    "coord_x": 500,
+    "coord_y": 600,
+    "is_reserved": true
+  },
+  {
+    "station_id": 3,
+    "name": "Posto C",
+    "coord_x": 700,
+    "coord_y": 800,
+    "is_reserved": false
+  }
+]
