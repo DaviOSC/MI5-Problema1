@@ -137,10 +137,9 @@ func main() {
 
 		switch responseMessage.Req {
 		case types.RegisterCar:
-			if responseMessage.Status == types.Success {
-				fmt.Println("Carro registrado com sucesso.")
-			} else {
-				fmt.Println("Erro ao registrar o carro.")
+			client.car, err = HandleRegisterCarResponse(responseMessage)
+			if err != nil {
+				fmt.Println("Erro:", err)
 			}
 		case types.GetRecommendedStation:
 			if responseMessage.Status == types.Success {

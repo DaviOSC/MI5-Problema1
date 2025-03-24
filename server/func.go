@@ -129,7 +129,8 @@ func HandlePayRecharge(message types.Message) types.Message {
 		responseMessage.Status = types.Error
 		fmt.Printf("Estação não encontrada, na requisição PayRecharge, para a estação de id %d\n", stationID)
 	}
-
+	fmt.Println(station.CarList)
+	fmt.Println(len(station.CarList))
 	if station.InUseBy == 0 && station.CarList[0] == message.Car.CarID {
 		station.InUseBy = message.Car.CarID
 		station.CarsWaiting -= 1

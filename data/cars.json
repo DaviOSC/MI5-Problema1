@@ -8,6 +8,8 @@
     "battery_level": 401,
     "recomended_station": 0,
     "reserved_station": 0,
+    "pix_code": 0,
+    "credit_card_number": 0,
     "payment_history": null
   },
   {
@@ -19,6 +21,8 @@
     "battery_level": 2,
     "recomended_station": 0,
     "reserved_station": 0,
+    "pix_code": 0,
+    "credit_card_number": 0,
     "payment_history": null
   },
   {
@@ -30,6 +34,8 @@
     "battery_level": 80,
     "recomended_station": 0,
     "reserved_station": 0,
+    "pix_code": 0,
+    "credit_card_number": 0,
     "payment_history": null
   },
   {
@@ -41,6 +47,8 @@
     "battery_level": 852,
     "recomended_station": 0,
     "reserved_station": 0,
+    "pix_code": 0,
+    "credit_card_number": 0,
     "payment_history": null
   },
   {
@@ -52,17 +60,21 @@
     "battery_level": 28,
     "recomended_station": 0,
     "reserved_station": 0,
+    "pix_code": 0,
+    "credit_card_number": 0,
     "payment_history": null
   },
   {
     "car_id": 5,
     "user": "5",
-    "password": "5",
+    "password": "",
     "coord_x": 5,
     "coord_y": 5,
-    "battery_level": 6,
+    "battery_level": 5,
     "recomended_station": 0,
     "reserved_station": 0,
+    "pix_code": 0,
+    "credit_card_number": 0,
     "payment_history": null
   },
   {
@@ -74,6 +86,8 @@
     "battery_level": 69,
     "recomended_station": 0,
     "reserved_station": 0,
+    "pix_code": 0,
+    "credit_card_number": 0,
     "payment_history": null
   },
   {
@@ -85,6 +99,8 @@
     "battery_level": 9,
     "recomended_station": 0,
     "reserved_station": 0,
+    "pix_code": 0,
+    "credit_card_number": 0,
     "payment_history": null
   }
 ]

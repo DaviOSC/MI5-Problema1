@@ -114,3 +114,18 @@ func ReadResponse(conn net.Conn) (types.Message, error) {
 	}
 	return responseMessage, nil
 }
+
+func HandleRegisterCarResponse(responseMessage types.Message) (types.Car, error) {
+	if responseMessage.Status == types.Success {
+		fmt.Println("Carro registrado com sucesso.")
+		return responseMessage.Car, nil
+	} else {
+		return responseMessage.Car, fmt.Errorf("erro ao registrar carro")
+	}
+}
+
+// func HandleGetRecmmendedStationResponse(responseMessage types.Message) (types.Car, error)
+// func HandleReserveStationResponse(responseMessage types.Message) (types.Car, error)
+// func HandleRechargeCompleteResponse(responseMessage types.Message) (types.Car, error)
+// func HandlePayRechargeResponse(responseMessage types.Message) (types.Car, error)
+// func HandleListStationsResponse(responseMessage types.Message) (types.Car, error)
