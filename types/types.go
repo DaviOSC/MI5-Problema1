@@ -9,22 +9,26 @@ type Payment struct {
 }
 
 type Car struct {
-	CarID             int    `json:"car_id"`
-	User              string `json:"user"`
-	Password          string `json:"password"`
-	CoordX            int    `json:"coord_x"`
-	CoordY            int    `json:"coord_y"`
-	BatteryLevel      int    `json:"battery_level"`      // 0-100
-	RecomendedStation int    `json:"recomended_station"` // StationID
-	ReservedStation   int    `json:"reserved_station"`   // StationID
-	PaymentHistory    []int  `json:"payment_history"`    // Slice de PaymentID
+	CarID             int       `json:"car_id"`
+	User              string    `json:"user"`
+	Password          string    `json:"password"`
+	CoordX            int       `json:"coord_x"`
+	CoordY            int       `json:"coord_y"`
+	BatteryLevel      int       `json:"battery_level"`      // 0-100
+	RecomendedStation int       `json:"recomended_station"` // StationID
+	ReservedStation   int       `json:"reserved_station"`   // StationID
+	PixCode           int       `json:"pix_code"`
+	CreditCardNumber  int       `json:"credit_card_number"`
+	PaymentHistory    []Payment `json:"payment_history"` // Slice de PaymentID
 }
 
 type Station struct {
-	StationID  int   `json:"station_id"`
-	CoordX     int   `json:"coord_x"`
-	CoordY     int   `json:"coord_y"`
-	CarsInLine []int `json:"cars_in_line"` // Slice de CarID
+	StationID   int   `json:"station_id"`
+	CoordX      int   `json:"coord_x"`
+	CoordY      int   `json:"coord_y"`
+	CarList     []int `json:"car_list"`
+	CarsWaiting int   `json:"cars_waiting"`
+	InUseBy     int   `json:"in_use"` // CarID
 }
 
 type Requests int
@@ -35,7 +39,7 @@ const (
 	GetRecommendedStation                 // Obter a estação recomendada para um carro, passando suas coordenadas: carro -> server
 	IsStationAvailable                    // Verificar se uma estação está disponível, passando seu ID: server -> estações
 	ReserveStation                        // Reservar uma estação, passando o ID do carro e o ID da estação: carro -> server
-	RechargeCar                           // Recarregar um carro, passando o ID do carro e o ID da estação: carro -> server
+	RechargeComplete                      // Recarregar um carro, passando o ID do carro e o ID da estação: carro -> server
 	GeneratePayment                       // Gerar um pagamento, passando o ID do pagamento e o valor: server -> carro
 	PayRecharge                           // Pagar uma recarga, passando o ID do pagamento: carro -> server(Obs:fazer antes da reserva o pagamento)
 	UserLogin
@@ -48,7 +52,7 @@ var RequestsNames = map[Requests]string{
 	GetRecommendedStation: "get_recommended_station",
 	IsStationAvailable:    "is_station_available",
 	ReserveStation:        "reserve_station",
-	RechargeCar:           "recharge_car",
+	RechargeComplete:      "recharge_car",
 	GeneratePayment:       "generate_payment",
 	PayRecharge:           "pay_recharge",
 	UserLogin:             "user_login",

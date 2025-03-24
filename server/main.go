@@ -77,8 +77,8 @@ func (s *Server) readLoop(conn net.Conn) {
 		case types.ReserveStation:
 			responseMessage = HandleReserveStation(message)
 
-		case types.RechargeCar:
-			responseMessage = HandleRechargeCar(message)
+		case types.RechargeComplete:
+			responseMessage = HandleRechargeComplete(message)
 
 		case types.PayRecharge:
 			responseMessage = HandlePayRecharge(message)

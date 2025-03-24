@@ -51,10 +51,10 @@ func HandleReserveStation(car types.Car) (types.Message, error) {
 	}, nil
 }
 
-// HandleRechargeCar lida com a requisição de recarga de carro
-func HandleRechargeCar(car types.Car) (types.Message, error) {
+// HandleRechargeComplete lida com a requisição de recarga de carro
+func HandleRechargeComplete(car types.Car) (types.Message, error) {
 	return types.Message{
-		Req: types.RechargeCar,
+		Req: types.RechargeComplete,
 		Car: car,
 	}, nil
 }

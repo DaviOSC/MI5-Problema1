@@ -103,7 +103,7 @@ func main() {
 				log.Fatal("Erro ao registrar o carro:", err)
 			}
 		case "4":
-			message, err = HandleRechargeCar(client.car)
+			message, err = HandleRechargeComplete(client.car)
 			if err != nil {
 				log.Fatal("Erro ao registrar o carro:", err)
 			}
@@ -160,7 +160,7 @@ Coordenadas: (x: %d, y: %d)`,
 			} else {
 				fmt.Println("Erro ao reservar a estação.")
 			}
-		case types.RechargeCar:
+		case types.RechargeComplete:
 			if responseMessage.Status == types.Success {
 				fmt.Println("Carro recarregado com sucesso.")
 			} else {

@@ -86,12 +86,71 @@ func HandleListStations(message types.Message) types.Message {
 }
 
 func HandleReserveStation(message types.Message) types.Message {
-	responseMessage := types.Message{Req: types.ReserveStation}
+	responseMessage := types.Message{Req: types.ReserveStation, Status: types.Success}
+	var err error
+	station := types.Station{}
+	stationID := message.Car.RecomendedStation
+
+	// Verifica se o carro possue uma estação recomendada
+	if stationID == 0 {
+		station, err = getBestStation(message.Car.CarID)
+		if err != nil {
+			responseMessage.Status = types.Error
+			fmt.Printf("Estação não encontrada, na requisição ReserveStation, para o carro de id %d\n", message.Car.CarID)
+		}
+	} else {
+		station, err = getStationFromFile(stationID)
+		if err != nil {
+			responseMessage.Status = types.Error
+			fmt.Printf("Estação não encontrada, na requisição ReserveStation, para a estação de id %d\n", stationID)
+		}
+	}
+
+	// Atualizando dados da estação e salvando em JSON
+	carList := append(station.CarList, message.Car.CarID)
+	station.CarList = carList
+	station.CarsWaiting += 1
+	err = saveStationToFile(station)
+	if err != nil {
+		responseMessage.Status = types.Error
+	}
+
+	message.Car.ReservedStation = station.StationID
+	responseMessage.Car = message.Car
+
 	return responseMessage
 }
 
 func HandlePayRecharge(message types.Message) types.Message {
-	responseMessage := types.Message{Req: types.PayRecharge}
+	responseMessage := types.Message{Req: types.PayRecharge, Status: types.Success}
+	stationID := message.Car.ReservedStation
+	station, err := getStationFromFile(stationID)
+	if err != nil {
+		responseMessage.Status = types.Error
+		fmt.Printf("Estação não encontrada, na requisição PayRecharge, para a estação de id %d\n", stationID)
+	}
+
+	if station.InUseBy == 0 && station.CarList[0] == message.Car.CarID {
+		station.InUseBy = message.Car.CarID
+		station.CarsWaiting -= 1
+		station.CarList = station.CarList[1:]
+		err := saveStationToFile(station)
+		if err != nil {
+			responseMessage.Status = types.Error
+			fmt.Printf("Erro ao salvar a estação, na requisição PayRecharge, para a estação de id %d\n", stationID)
+		}
+		// TODO simular pagamento
+		responseMessage.Car = message.Car
+		err = saveCarToFile(message.Car)
+		if err != nil {
+			responseMessage.Status = types.Error
+			fmt.Printf("Erro ao salvar o carro, na requisição PayRecharge, para o carro de id %d\n", message.Car.CarID)
+		}
+	} else {
+		responseMessage.Status = types.Error
+		fmt.Printf("Estação não disponível, na requisição PayRecharge, para a estação de id %d\n", stationID)
+	}
+
 	return responseMessage
 }
 
@@ -113,8 +172,37 @@ func HandleGetRecommendedStation(message types.Message) types.Message {
 	return responseMessage
 }
 
-func HandleRechargeCar(message types.Message) types.Message {
-	responseMessage := types.Message{Req: types.RechargeCar}
+func HandleRechargeComplete(message types.Message) types.Message {
+	responseMessage := types.Message{Req: types.RechargeComplete, Status: types.Success}
+	car, stationID := message.Car, message.Car.ReservedStation
+	station, err := getStationFromFile(stationID)
+	if err != nil {
+		responseMessage.Status = types.Error
+		fmt.Printf("Estação não encontrada, na requisição RechageComplete, para a estação de id %d\n", stationID)
+		responseMessage.Car = car
+		return responseMessage
+	}
+	if station.InUseBy != car.CarID {
+		responseMessage.Status = types.Error
+		fmt.Printf("Informação não compativeis entre o carro e a estação")
+		responseMessage.Car = car
+		return responseMessage
+	}
+
+	car.ReservedStation, car.RecomendedStation = 0, 0
+	station.InUseBy = 0
+	responseMessage.Car = car
+	err = saveStationToFile(station)
+	if err != nil {
+		responseMessage.Status = types.Error
+		fmt.Printf("Erro ao salvar a estação, na requisição RechargeComplete, para a estação de id %d\n", stationID)
+	}
+	err = saveCarToFile(car)
+	if err != nil {
+		responseMessage.Status = types.Error
+		fmt.Printf("Erro ao salvar o carro, na requisição RechargeComplete, para o carro de id %d\n", car.CarID)
+	}
+
 	return responseMessage
 }
 

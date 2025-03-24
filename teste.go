@@ -6,8 +6,8 @@ import (
 )
 
 type estrutura struct {
-	Teste  int `json:"teste"`
-	Teste2 any `json:"teste2"`
+	Teste  int             `json:"teste"`
+	Teste2 outra_estrutura `json:"teste2"`
 }
 
 type outra_estrutura struct {
@@ -15,14 +15,13 @@ type outra_estrutura struct {
 }
 
 func teste(arg estrutura) {
-	fmt.Println(arg.Teste2.(map[string]interface{})["texto"])
+	fmt.Println(arg.Teste2.Texto)
 }
 
 func main() {
-	oe := outra_estrutura{Texto: "Tomar no cu"}
-	a := estrutura{Teste: 1, Teste2: oe}
+	a := estrutura{Teste: 1, Teste2: outra_estrutura{Texto: "teste"}}
 	b, _ := json.Marshal(a)
 	var c estrutura = estrutura{}
 	json.Unmarshal(b, &c)
-	teste(c)
+	fmt.Println(c.Teste2 == outra_estrutura{} || c.Teste2.Texto == "")
 }
