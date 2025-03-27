@@ -86,8 +86,8 @@ func (s *Server) readLoop(conn net.Conn) {
 		case types.GetRecommendedStation:
 			responseMessage = HandleGetRecommendedStation(message)
 
-		case types.PaymentHistory:
-			responseMessage = HandlePaymentHistory(message)
+		// case types.PaymentHistory:
+		// 	responseMessage = HandlePaymentHistory(message)
 		default:
 			responseMessage.Status = types.Error
 			fmt.Println("Requisição inválida")

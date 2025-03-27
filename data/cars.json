@@ -84,8 +84,8 @@
     "coord_x": 69,
     "coord_y": 69,
     "battery_level": 69,
-    "recomended_station": 0,
-    "reserved_station": 0,
+    "recomended_station": 10,
+    "reserved_station": 10,
     "pix_code": 0,
     "credit_card_number": 0,
     "payment_history": null

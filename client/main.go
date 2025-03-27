@@ -76,7 +76,7 @@ func main() {
 1 - Registrar um Carro
 2 - Pedir Recomendação de Estação
 3 - Reservar Estação
-4 - Recarregar Carro
+4 - Recarregar Completa
 5 - Pagar Recarga
 6 - Listar Estações
 7 - Listar Histórico de Recargas
@@ -140,7 +140,6 @@ func main() {
 		if err != nil {
 			log.Fatal("Erro ao receber resposta:", err)
 		}
-
 
 		switch responseMessage.Req {
 		case types.RegisterCar:

@@ -132,7 +132,7 @@ func HandleRegisterCarResponse(responseMessage types.Message) (types.Car, error)
 func HandlePaymentHistoryResponse(responseMessage types.Message) (types.Car, error) {
     if responseMessage.Status == types.Success {
         fmt.Println("Histórico de pagamentos:")
-        for _, payment := range responseMessage.PaymentHistory {
+        for _, payment := range responseMessage.Car.PaymentHistory {
             fmt.Printf(
                 `ID do pagamento: %d
 De (CarID): %d
@@ -159,7 +159,7 @@ Coordenadas: (x: %d, y: %d)`,
         fmt.Println()
         return responseMessage.Car, nil
     } else {
-        return responseMessage.Car, fmt.Errorf("Erro ao recomendar estação")
+        return responseMessage.Car, fmt.Errorf("erro ao recomendar estação")
     }
 }
 func HandleReserveStationResponse(responseMessage types.Message) (types.Car, error){

@@ -109,31 +109,31 @@ func HandleReserveStation(message types.Message) types.Message {
 	}
 	//Verifica se o carro tá na fila
 	for _, carID := range station.CarList {
-        if carID == message.Car.CarID {
-            responseMessage.Status = types.Error
-            fmt.Printf("Erro: O carro com ID %d já está na fila da estação com ID %d.\n", message.Car.CarID, station.StationID)
-            return responseMessage
-        }
-    }
+		if carID == message.Car.CarID {
+			responseMessage.Status = types.Error
+			fmt.Printf("Erro: O carro com ID %d já está na fila da estação com ID %d.\n", message.Car.CarID, station.StationID)
+			return responseMessage
+		}
+	}
 	// Atualizando dados da estação e salvando em JSON
 	station.CarList = append(station.CarList, message.Car.CarID)
 	station.CarsWaiting += 1
 	err = saveStationToFile(station)
 	if err != nil {
 		responseMessage.Status = types.Error
-        fmt.Printf("Erro ao salvar a estação, na requisição ReserveStation, para a estação de id %d\n", station.StationID)
+		fmt.Printf("Erro ao salvar a estação, na requisição ReserveStation, para a estação de id %d\n", station.StationID)
 		return responseMessage
 	}
 	message.Car.ReservedStation = station.StationID
-	
+
 	responseMessage.Car = message.Car
 	err = saveCarToFile(message.Car)
-		if err != nil {
-			responseMessage.Status = types.Error
-			fmt.Printf("Erro ao salvar o carro, na requisição ReserveStation, para o carro de id %d\n", message.Car.CarID)
-			return responseMessage
-		}
-		
+	if err != nil {
+		responseMessage.Status = types.Error
+		fmt.Printf("Erro ao salvar o carro, na requisição ReserveStation, para o carro de id %d\n", message.Car.CarID)
+		return responseMessage
+	}
+
 	return responseMessage
 }
 
@@ -175,15 +175,15 @@ func HandlePayRecharge(message types.Message) types.Message {
 	return responseMessage
 }
 
-func HandlePaymentHistory(message types.Message) types.Message {
-	car := message.Car
-	responseMessage := types.Message{Req: types.PaymentHistory}
+// func HandlePaymentHistory(message types.Message) types.Message {
+// 	car := message.Car
+// 	responseMessage := types.Message{Req: types.PaymentHistory}
 
-	payments := []types.Payment{}
-	responseMessage.Res
-	return responseMessage
+// 	payments := []types.Payment{}
+// 	responseMessage.
+// 	return responseMessage
 
-}
+// }
 
 func HandleGetRecommendedStation(message types.Message) types.Message {
 	car := message.Car
@@ -196,7 +196,12 @@ func HandleGetRecommendedStation(message types.Message) types.Message {
 	} else {
 		responseMessage.Status = types.Success
 		responseMessage.Station = station
+		car.RecomendedStation = station.StationID
 		responseMessage.Car = car
+		err = saveCarToFile(car)
+		if err != nil {
+			responseMessage.Status = types.Success
+		}
 		fmt.Printf("Estação com id %d encontrada", station.StationID)
 	}
 
@@ -229,6 +234,7 @@ func HandleRechargeComplete(message types.Message) types.Message {
 		fmt.Printf("Erro ao salvar a estação, na requisição RechargeComplete, para a estação de id %d\n", stationID)
 		return responseMessage
 	}
+
 	err = saveCarToFile(car)
 	if err != nil {
 		responseMessage.Status = types.Error
@@ -371,7 +377,7 @@ func getBestStation(carId int) (types.Station, error) {
 		}
 	}
 
-	//TODO verificação de carros na fila, e de tempo de espera 
+	//TODO verificação de carros na fila, e de tempo de espera
 	var bestStation types.Station
 	minDistance := math.MaxFloat64
 
