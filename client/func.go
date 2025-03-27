@@ -58,6 +58,14 @@ func HandleRechargeComplete(car types.Car) (types.Message, error) {
 		Car: car,
 	}, nil
 }
+
+func HandleStartRecharge(car types.Car) (types.Message, error) {    
+    fmt.Printf("Solicitando início da recarga para o carro %d na estação %d...\n", car.CarID, car.ReservedStation)
+    return types.Message{
+        Req: types.StartRecharge,
+        Car: car,
+    }, nil
+}
 func HandlePaymentHistory(car types.Car) (types.Message, error) {
 	return types.Message{
 		Req: types.PaymentHistory,
@@ -178,6 +186,39 @@ func HandleRechargeCompleteResponse(responseMessage types.Message) (types.Car, e
 	} else {
 		return responseMessage.Car, fmt.Errorf("erro ao completar recarga")
 	}
+}
+func HandleStartRechargeResponse(client *Client, responseMessage types.Message) (types.Car, error) {
+    if responseMessage.Status == types.Success {
+        fmt.Println("Recarga iniciada com sucesso.")
+
+        // Criar a mensagem de conclusão da recarga
+        message, err := HandleRechargeComplete(responseMessage.Car)
+        if err != nil {
+            return responseMessage.Car, fmt.Errorf("erro ao preparar mensagem de conclusão da recarga: %v", err)
+        }
+
+        // Enviar a mensagem de conclusão ao servidor
+        err = client.SendMessage(message)
+        if err != nil {
+            return responseMessage.Car, fmt.Errorf("erro ao enviar mensagem de conclusão da recarga: %v", err)
+        }
+
+        // Ler a resposta de conclusão da recarga
+        completeResponse, err := client.ReadResponse()
+        if err != nil {
+            return responseMessage.Car, fmt.Errorf("erro ao receber resposta de conclusão da recarga: %v", err)
+        }
+
+        // Processar a resposta de conclusão da recarga
+        if completeResponse.Status == types.Success {
+            fmt.Println("Recarga concluída com sucesso.")
+            return completeResponse.Car, nil
+        } else {
+            return completeResponse.Car, fmt.Errorf("erro ao concluir recarga: %v", completeResponse.Status)
+        }
+    } else {
+        return responseMessage.Car, fmt.Errorf("erro ao iniciar recarga: %v", responseMessage.Status)
+    }
 }
 
 func HandlePayRechargeResponse(responseMessage types.Message) (types.Car, error){

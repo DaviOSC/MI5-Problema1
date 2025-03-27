@@ -39,6 +39,7 @@ const (
 	GetRecommendedStation                 // Obter a estação recomendada para um carro, passando suas coordenadas: carro -> server
 	IsStationAvailable                    // Verificar se uma estação está disponível, passando seu ID: server -> estações
 	ReserveStation                        // Reservar uma estação, passando o ID do carro e o ID da estação: carro -> server
+	StartRecharge
 	RechargeComplete                      // Recarregar um carro, passando o ID do carro e o ID da estação: carro -> server
 	GeneratePayment                       // Gerar um pagamento, passando o ID do pagamento e o valor: server -> carro
 	PayRecharge                           // Pagar uma recarga, passando o ID do pagamento: carro -> server(Obs:fazer antes da reserva o pagamento)
@@ -53,6 +54,7 @@ var RequestsNames = map[Requests]string{
 	GetRecommendedStation: "get_recommended_station",
 	IsStationAvailable:    "is_station_available",
 	ReserveStation:        "reserve_station",
+	StartRecharge:         "start_recharge",
 	RechargeComplete:      "recharge_car",
 	GeneratePayment:       "generate_payment",
 	PayRecharge:           "pay_recharge",

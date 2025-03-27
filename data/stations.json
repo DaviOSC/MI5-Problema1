@@ -20,7 +20,7 @@
     "coord_x": 25,
     "coord_y": 50,
     "car_list": [],
-    "cars_waiting": 2,
+    "cars_waiting": 0,
     "in_use": 0
   },
   {

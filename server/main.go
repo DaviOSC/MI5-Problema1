@@ -50,14 +50,31 @@ func (s *Server) acceptLoop() {
 
 func (s *Server) readLoop(conn net.Conn) {
 	for {
+		//@DaviOSC usei pra escrever o JSON no terminal
+		// decoder := json.NewDecoder(conn)
+		// message := types.Message{}
+        // err := decoder.Decode(&message)
+        // if err != nil {
+        //     fmt.Println("Erro ao decodificar JSON:", err)
+        
+        // }
+
+        // formattedJSON, err := json.MarshalIndent(message, "", "  ")
+        // if err != nil {
+        //     fmt.Println("Erro ao formatar JSON:", err)
+            
+        // }
+        // fmt.Println("JSON recebido formatado:")
+        // fmt.Println(string(formattedJSON))
+        // responseMessage := types.Message{}
+
 		decoder := json.NewDecoder(conn)
 		message := types.Message{}
-		var err = decoder.Decode(&message)
+		err := decoder.Decode(&message)
 		if err != nil {
 			fmt.Println("Erro ao decodificar JSON:", err)
 			break
 		}
-
 		responseMessage := types.Message{}
 
 		switch message.Req {
@@ -79,6 +96,9 @@ func (s *Server) readLoop(conn net.Conn) {
 
 		case types.RechargeComplete:
 			responseMessage = HandleRechargeComplete(message)
+		
+		case types.StartRecharge:
+			responseMessage = HandleStartRecharge(message)
 
 		case types.PayRecharge:
 			responseMessage = HandlePayRecharge(message)

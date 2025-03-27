@@ -210,49 +210,72 @@ func HandleGetRecommendedStation(message types.Message) types.Message {
 }
 
 func HandleRechargeComplete(message types.Message) types.Message {
-	responseMessage := types.Message{Req: types.RechargeComplete, Status: types.Success}
-	car, stationID := message.Car, message.Car.ReservedStation
-	station, err := getStationFromFile(stationID)
-	if err != nil {
-		responseMessage.Status = types.Error
-		fmt.Printf("Estação não encontrada, na requisição RechageComplete, para a estação de id %d\n", stationID)
-		responseMessage.Car = car
-		return responseMessage
-	}
-	if station.InUseBy != car.CarID {
-		responseMessage.Status = types.Error
-		fmt.Printf("Informação não compativeis entre o carro e a estação")
-		responseMessage.Car = car
-		return responseMessage
-	}
-	go func(car types.Car, station types.Station) {
-        fmt.Printf("Iniciando recarga para o carro %d na estação %d. Tempo estimado: 20 segundos.\n", car.CarID, station.StationID)
-        time.Sleep(20 * time.Second)
+    responseMessage := types.Message{Req: types.RechargeComplete, Status: types.Success}
+    car, stationID := message.Car, message.Car.ReservedStation
 
-        // Atualizar os dados após a recarga
-        car.ReservedStation, car.RecomendedStation = 0, 0
-        station.InUseBy = 0
+    // Obter a estação do arquivo
+    station, err := getStationFromFile(stationID)
+    if err != nil {
+        responseMessage.Status = types.Error
+        fmt.Printf("Estação não encontrada para o ID %d\n", stationID)
+        return responseMessage
+    }
 
-        err := saveStationToFile(station)
-        if err != nil {
-            fmt.Printf("Erro ao salvar a estação, na conclusão da recarga, para a estação de id %d\n", station.StationID)
-            return
-        }
+    // Validar se a estação está em uso pelo carro correto
+    if station.InUseBy != car.CarID {
+        responseMessage.Status = types.Error
+        fmt.Printf("Estação %d não está em uso pelo carro %d\n", stationID, car.CarID)
+        return responseMessage
+    }
+    // Atualizar os dados do carro e da estação
+    car.ReservedStation, car.RecomendedStation = 0, 0
+    station.InUseBy = 0
 
-        err = saveCarToFile(car)
-        if err != nil {
-            fmt.Printf("Erro ao salvar o carro, na conclusão da recarga, para o carro de id %d\n", car.CarID)
-            return
-        }
+    err = saveStationToFile(station)
+    if err != nil {
+        responseMessage.Status = types.Error
+        fmt.Printf("Erro ao salvar a estação %d\n", station.StationID)
+        return responseMessage
+    }
 
-        fmt.Printf("Recarga concluída para o carro %d na estação %d.\n", car.CarID, station.StationID)
-    }(car, station)
+    err = saveCarToFile(car)
+    if err != nil {
+        responseMessage.Status = types.Error
+        fmt.Printf("Erro ao salvar o carro %d\n", car.CarID)
+        return responseMessage
+    }
 
-    // Retornar a resposta imediatamente
-    fmt.Printf("Recarga iniciada para o carro %d na estação %d.\n", car.CarID, station.StationID)
+    fmt.Printf("Recarga concluída para o carro %d na estação %d.\n", car.CarID, station.StationID)
+	responseMessage.Car = car
     return responseMessage
 }
+func HandleStartRecharge(message types.Message) types.Message {
+    responseMessage := types.Message{Req: types.StartRecharge, Status: types.Success}
+    car, stationID := message.Car, message.Car.ReservedStation
 
+    // Obter a estação do arquivo
+    station, err := getStationFromFile(stationID)
+    if err != nil {
+        responseMessage.Status = types.Error
+        fmt.Printf("Estação não encontrada para o ID %d\n", stationID)
+        return responseMessage
+    }
+
+    // Marcar a estação como em uso pelo carro
+    station.InUseBy = car.CarID
+    err = saveStationToFile(station)
+    if err != nil {
+        responseMessage.Status = types.Error
+        fmt.Printf("Erro ao salvar a estação %d\n", stationID)
+        return responseMessage
+    }
+
+    fmt.Printf("Recarga iniciada para o carro %d na estação %d. Tempo estimado: 10 segundos.\n", car.CarID, station.StationID)
+    time.Sleep(10 * time.Second)
+	//TODO o cliente ainda consegue enviar mensagens no terminal no periodo. elas são processadas em sequencia apos o tempo
+	responseMessage.Car = car
+    return responseMessage
+}
 func SendResponse(conn net.Conn, responseMessage types.Message) error {
 	responseBuf, err := json.Marshal(responseMessage)
 	if err != nil {

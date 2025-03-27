@@ -76,7 +76,7 @@ func main() {
 1 - Registrar um Carro
 2 - Pedir Recomendação de Estação
 3 - Reservar Estação
-4 - Recarregar Completa
+4 - Iniciar a recarga
 5 - Pagar Recarga
 6 - Listar Estações
 7 - Listar Histórico de Recargas
@@ -104,9 +104,9 @@ func main() {
 				log.Fatal("Erro ao registrar o carro:", err)
 			}
 		case "4":
-			message, err = HandleRechargeComplete(client.car)
+			message, err = HandleStartRecharge(client.car)
 			if err != nil {
-				log.Fatal("Erro ao registrar o carro:", err)
+				log.Fatal("Erro ao iniciar a recarga:", err)
 			}
 		case "5":
 			message, err = HandlePayRecharge(client.car)
@@ -159,6 +159,11 @@ func main() {
 			}
 		case types.RechargeComplete:
 			client.car, err = HandleRechargeCompleteResponse(responseMessage)
+			if err != nil {
+				fmt.Println("Erro:", err)
+			}
+		case types.StartRecharge:
+			client.car, err = HandleStartRechargeResponse(client, responseMessage)
 			if err != nil {
 				fmt.Println("Erro:", err)
 			}
