@@ -1,27 +1,33 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
+	"sync"
+	"time"
 )
 
-type estrutura struct {
-	Teste  int             `json:"teste"`
-	Teste2 outra_estrutura `json:"teste2"`
+var mu sync.Mutex
+
+func teste() {
+	fmt.Println("teste")
+	mu.Lock()
+	for i := 0; i < 5; i++ {
+		time.Sleep(100 * time.Millisecond)
+		fmt.Println("Acessei 1")
+	}
+	mu.Unlock()
 }
 
-type outra_estrutura struct {
-	Texto string `json:"texto"`
-}
-
-func teste(arg estrutura) {
-	fmt.Println(arg.Teste2.Texto)
+func teste2() {
+	fmt.Println("teste2")
+	for i := 0; i < 5; i++ {
+		time.Sleep(100 * time.Millisecond)
+		fmt.Println("Assecei 2")
+	}
 }
 
 func main() {
-	a := estrutura{Teste: 1, Teste2: outra_estrutura{Texto: "teste"}}
-	b, _ := json.Marshal(a)
-	var c estrutura = estrutura{}
-	json.Unmarshal(b, &c)
-	fmt.Println(c.Teste2 == outra_estrutura{} || c.Teste2.Texto == "")
+	go teste()
+	go teste2()
+	time.Sleep(500000000000)
 }

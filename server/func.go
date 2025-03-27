@@ -7,6 +7,7 @@ import (
 	"math"
 	"net"
 	"os"
+	"time"
 )
 
 func HandleRegisterCar(message types.Message) types.Message {
@@ -188,7 +189,7 @@ func HandlePayRecharge(message types.Message) types.Message {
 func HandleGetRecommendedStation(message types.Message) types.Message {
 	car := message.Car
 	responseMessage := types.Message{Req: types.GetRecommendedStation}
-
+	fmt.Printf("Requisição GetRecommendedStation para o carro de id %d\n", car.CarID)
 	station, err := getBestStation(car.CarID)
 	if err != nil {
 		responseMessage.Status = types.Error
@@ -224,25 +225,32 @@ func HandleRechargeComplete(message types.Message) types.Message {
 		responseMessage.Car = car
 		return responseMessage
 	}
+	go func(car types.Car, station types.Station) {
+        fmt.Printf("Iniciando recarga para o carro %d na estação %d. Tempo estimado: 20 segundos.\n", car.CarID, station.StationID)
+        time.Sleep(20 * time.Second)
 
-	car.ReservedStation, car.RecomendedStation = 0, 0
-	station.InUseBy = 0
-	responseMessage.Car = car
-	err = saveStationToFile(station)
-	if err != nil {
-		responseMessage.Status = types.Error
-		fmt.Printf("Erro ao salvar a estação, na requisição RechargeComplete, para a estação de id %d\n", stationID)
-		return responseMessage
-	}
+        // Atualizar os dados após a recarga
+        car.ReservedStation, car.RecomendedStation = 0, 0
+        station.InUseBy = 0
 
-	err = saveCarToFile(car)
-	if err != nil {
-		responseMessage.Status = types.Error
-		fmt.Printf("Erro ao salvar o carro, na requisição RechargeComplete, para o carro de id %d\n", car.CarID)
-		return responseMessage
-	}
+        err := saveStationToFile(station)
+        if err != nil {
+            fmt.Printf("Erro ao salvar a estação, na conclusão da recarga, para a estação de id %d\n", station.StationID)
+            return
+        }
 
-	return responseMessage
+        err = saveCarToFile(car)
+        if err != nil {
+            fmt.Printf("Erro ao salvar o carro, na conclusão da recarga, para o carro de id %d\n", car.CarID)
+            return
+        }
+
+        fmt.Printf("Recarga concluída para o carro %d na estação %d.\n", car.CarID, station.StationID)
+    }(car, station)
+
+    // Retornar a resposta imediatamente
+    fmt.Printf("Recarga iniciada para o carro %d na estação %d.\n", car.CarID, station.StationID)
+    return responseMessage
 }
 
 func SendResponse(conn net.Conn, responseMessage types.Message) error {
