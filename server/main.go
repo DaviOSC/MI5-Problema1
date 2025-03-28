@@ -6,19 +6,24 @@ import (
 	"log"
 	"main/types"
 	"net"
+	"sync"
+	"time"
 )
 
 type Server struct {
-	address  string // Porta do TCP
-	listener net.Listener
-	quitch   chan struct{}
+    address  string
+    listener net.Listener
+    quitch   chan struct{}
+    mu       sync.Mutex         // Novo: Mutex para sincronização
+    ticker   *time.Ticker       // Novo: Ticker para decrementar bateria
 }
 
 func NewServer(address string) *Server {
-	return &Server{
-		address: address,
-		quitch:  make(chan struct{}),
-	}
+    return &Server{
+        address: address,
+        quitch:  make(chan struct{}),
+        ticker:  time.NewTicker(5 * time.Second), // Ticker a cada 5s
+    }
 }
 
 func (s *Server) Start() error {
@@ -32,6 +37,7 @@ func (s *Server) Start() error {
 	fmt.Println("Servidor iniciado na porta", s.address)
 
 	go s.acceptLoop()
+	go s.runBatteryDecrement()
 	<-s.quitch
 	return nil
 }

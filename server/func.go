@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"main/types"
 	"math"
 	"net"
@@ -421,4 +422,45 @@ func getBestStation(carId int) (types.Station, error) {
 		}
 	}
 	return bestStation, nil
+}
+
+// Rotina que gerencia o decremento da bateria
+func (s *Server) runBatteryDecrement() {
+    for {
+        select {
+        case <-s.ticker.C:
+            s.decrementAllCarsBattery()
+        case <-s.quitch:
+            s.ticker.Stop()
+            return
+        }
+    }
+}
+
+// Função que decrementa a bateria de todos os carros
+func (s *Server) decrementAllCarsBattery() {
+    s.mu.Lock()
+    defer s.mu.Unlock()
+
+    cars, err := listCarsFromFile()
+    if err != nil {
+        log.Println("Erro ao ler carros:", err)
+        return
+    }
+
+    updated := false
+    for i := range cars {
+        if cars[i].BatteryLevel > 0 {
+            cars[i].BatteryLevel--
+            updated = true
+        }
+    }
+
+    if updated {
+        if err := saveJSONToFile("../data/cars.json", cars); err != nil {
+            log.Println("Erro ao salvar carros atualizados:", err)
+        } else {
+            log.Println("Bateria decrementada para todos os carros")
+        }
+    }
 }
