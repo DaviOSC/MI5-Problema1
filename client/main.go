@@ -159,7 +159,7 @@ func main() {
 
 		switch responseMessage.Req {
 		case types.RegisterCar:
-			client.car, err = HandleRegisterCarResponse(responseMessage)
+			_, err = HandleRegisterCarResponse(responseMessage)
 			if err != nil {
 				fmt.Println("Erro:", err)
 			}
