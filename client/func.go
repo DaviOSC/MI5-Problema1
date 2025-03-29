@@ -286,3 +286,5 @@ func (c *Client) syncBatteryWithServer() {
 
     fmt.Println("🔄 Sincronizando bateria com servidor...")
 }
+
+

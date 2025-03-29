@@ -156,9 +156,9 @@ func (s *Server) HandlePayRecharge(message types.Message) types.Message {
 		fmt.Printf("Estação não encontrada, na requisição PayRecharge, para a estação de id %d\n", stationID)
 		return responseMessage
 	}
-	if car.ReservedStation == 0 {
+	if message.Car.ReservedStation == 0 {
 		responseMessage.Status = types.Error
-		responseMEssage.Err = fmt.Errorf("Reserve a estação antes de pagar")
+		responseMessage.Err = fmt.Errorf("Reserve a estação antes de pagar")
 		return responseMessage
 	}
 		
@@ -242,6 +242,7 @@ func (s *Server) HandleRechargeComplete(message types.Message) types.Message {
     // Atualizar os dados do carro e da estação
     car.ReservedStation, car.RecomendedStation = 0, 0
     station.InUseBy = 0
+    car.BatteryLevel = 100
 
     err = s.saveStationToFile(station)
     if err != nil {
@@ -438,33 +439,48 @@ func (s *Server) getBestStation(carId int) (types.Station, error) {
 }
 
 func (s *Server) startCarMovement(car types.Car, station types.Station) {
-    const speed = 0.5 // Velocidade constante (unidades por segundo)
+    var speed = 0.5
     ticker := time.NewTicker(1 * time.Second)
-	defer ticker.Stop()
-	fmt.Printf("Trajeto do carro %d: para a estação %d\n", car.CarID, station.StationID)
+    defer ticker.Stop()
+    fmt.Printf("Trajeto do carro %d: para a estação %d\n", car.CarID, station.StationID)
+    coordX := float64(car.CoordX)
+    coordY := float64(car.CoordY)
+    stationX := float64(station.CoordX)
+    stationY := float64(station.CoordY)
 
     for {
         select {
         case <-ticker.C:
-            if car.CoordX < station.CoordX {
-                car.CoordX += speed
-            } else if car.CoordX > station.CoordX {
-                car.CoordX -= speed
+            if coordX < stationX {
+                coordX += speed
+                if coordX > stationX {
+                    coordX = stationX
+                }
+            } else if coordX > stationX {
+                coordX -= speed
+                if coordX < stationX {
+                    coordX = stationX
+                }
             }
-
-            if car.CoordY < station.CoordY {
-                car.CoordY += speed
-            } else if car.CoordY > station.CoordY {
-                car.CoordY -= speed
+            if coordY < stationY {
+                coordY += speed
+                if coordY > stationY {
+                    coordY = stationY
+                }
+            } else if coordY > stationY {
+                coordY -= speed
+                if coordY < stationY {
+                    coordY = stationY
+                }
             }
-
+            car.CoordX = int(coordX)
+            car.CoordY = int(coordY)
             err := s.saveCarToFile(car)
             if err != nil {
                 fmt.Printf("Erro ao salvar a posição do carro %d: %v\n", car.CarID, err)
                 return
             }
-            // Verificar se o carro chegou à estação
-            if car.CoordX == station.CoordX && car.CoordY == station.CoordY {
+            if math.Abs(coordX-stationX) < 0.01 && math.Abs(coordY-stationY) < 0.01 {
                 fmt.Printf("Carro %d chegou à estação %d.\n", car.CarID, station.StationID)
                 return
             }

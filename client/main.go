@@ -36,7 +36,7 @@ func NewClient() *Client {
 
     // Iniciar monitoramento de bateria em goroutine separada
     go c.batteryMonitor()
-
+	
     return c
 }
 
