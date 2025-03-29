@@ -59,12 +59,12 @@ func HandleRechargeComplete(car types.Car) (types.Message, error) {
 	}, nil
 }
 
-func HandleStartRecharge(car types.Car) (types.Message, error) {    
-    fmt.Printf("Solicitando início da recarga para o carro %d na estação %d...\n", car.CarID, car.ReservedStation)
-    return types.Message{
-        Req: types.StartRecharge,
-        Car: car,
-    }, nil
+func HandleStartRecharge(car types.Car) (types.Message, error) {
+	fmt.Printf("Solicitando início da recarga para o carro %d na estação %d...\n", car.CarID, car.ReservedStation)
+	return types.Message{
+		Req: types.StartRecharge,
+		Car: car,
+	}, nil
 }
 func HandlePaymentHistory(car types.Car) (types.Message, error) {
 	return types.Message{
@@ -138,39 +138,39 @@ func HandleRegisterCarResponse(responseMessage types.Message) (types.Car, error)
 	}
 }
 func HandlePaymentHistoryResponse(responseMessage types.Message) (types.Car, error) {
-    if responseMessage.Status == types.Success {
-        fmt.Println("Histórico de pagamentos:")
-        for _, payment := range responseMessage.Car.PaymentHistory {
-            fmt.Printf(
-                `ID do pagamento: %d
+	if responseMessage.Status == types.Success {
+		fmt.Println("Histórico de pagamentos:")
+		for _, payment := range responseMessage.Car.PaymentHistory {
+			fmt.Printf(
+				`ID do pagamento: %d
 De (CarID): %d
 Para (StationID): %d
 Valor: %d
 Timestamp: %d`, payment.PaymentID, payment.From, payment.To,
 				payment.Value, payment.TimeStamp,
-            )
-        }
-        return responseMessage.Car, nil
-    } else {
-        return responseMessage.Car, fmt.Errorf("erro ao listar pagamentos")
-    }
+			)
+		}
+		return responseMessage.Car, nil
+	} else {
+		return responseMessage.Car, fmt.Errorf("erro ao listar pagamentos")
+	}
 }
 
 func HandleGetRecommendedStationResponse(responseMessage types.Message) (types.Car, error) {
-    if responseMessage.Status == types.Success {
-        fmt.Printf(
-            `ID da estação recomendada: %d, 
+	if responseMessage.Status == types.Success {
+		fmt.Printf(
+			`ID da estação recomendada: %d, 
 Coordenadas: (x: %d, y: %d)`,
-            responseMessage.Station.StationID,
-            responseMessage.Station.CoordX, responseMessage.Station.CoordY,
-        )
-        fmt.Println()
-        return responseMessage.Car, nil
-    } else {
-        return responseMessage.Car, fmt.Errorf("erro ao recomendar estação")
-    }
+			responseMessage.Station.StationID,
+			responseMessage.Station.CoordX, responseMessage.Station.CoordY,
+		)
+		fmt.Println()
+		return responseMessage.Car, nil
+	} else {
+		return responseMessage.Car, fmt.Errorf("erro ao recomendar estação")
+	}
 }
-func HandleReserveStationResponse(responseMessage types.Message) (types.Car, error){
+func HandleReserveStationResponse(responseMessage types.Message) (types.Car, error) {
 	if responseMessage.Status == types.Success {
 		fmt.Println("Estação reservada com sucesso.")
 		return responseMessage.Car, nil
@@ -179,7 +179,7 @@ func HandleReserveStationResponse(responseMessage types.Message) (types.Car, err
 	}
 }
 
-func HandleRechargeCompleteResponse(responseMessage types.Message) (types.Car, error){
+func HandleRechargeCompleteResponse(responseMessage types.Message) (types.Car, error) {
 	if responseMessage.Status == types.Success {
 		fmt.Println("Recarga completa com sucesso.")
 		return responseMessage.Car, nil
@@ -188,40 +188,40 @@ func HandleRechargeCompleteResponse(responseMessage types.Message) (types.Car, e
 	}
 }
 func HandleStartRechargeResponse(client *Client, responseMessage types.Message) (types.Car, error) {
-    if responseMessage.Status == types.Success {
-        fmt.Println("Recarga iniciada com sucesso.")
+	if responseMessage.Status == types.Success {
+		fmt.Println("Recarga iniciada com sucesso.")
 
-        // Criar a mensagem de conclusão da recarga
-        message, err := HandleRechargeComplete(responseMessage.Car)
-        if err != nil {
-            return responseMessage.Car, fmt.Errorf("erro ao preparar mensagem de conclusão da recarga: %v", err)
-        }
+		// Criar a mensagem de conclusão da recarga
+		message, err := HandleRechargeComplete(responseMessage.Car)
+		if err != nil {
+			return responseMessage.Car, fmt.Errorf("erro ao preparar mensagem de conclusão da recarga: %v", err)
+		}
 
-        // Enviar a mensagem de conclusão ao servidor
-        err = client.SendMessage(message)
-        if err != nil {
-            return responseMessage.Car, fmt.Errorf("erro ao enviar mensagem de conclusão da recarga: %v", err)
-        }
+		// Enviar a mensagem de conclusão ao servidor
+		err = client.SendMessage(message)
+		if err != nil {
+			return responseMessage.Car, fmt.Errorf("erro ao enviar mensagem de conclusão da recarga: %v", err)
+		}
 
-        // Ler a resposta de conclusão da recarga
-        completeResponse, err := client.ReadResponse()
-        if err != nil {
-            return responseMessage.Car, fmt.Errorf("erro ao receber resposta de conclusão da recarga: %v", err)
-        }
+		// Ler a resposta de conclusão da recarga
+		completeResponse, err := client.ReadResponse()
+		if err != nil {
+			return responseMessage.Car, fmt.Errorf("erro ao receber resposta de conclusão da recarga: %v", err)
+		}
 
-        // Processar a resposta de conclusão da recarga
-        if completeResponse.Status == types.Success {
-            fmt.Println("Recarga concluída com sucesso.")
-            return completeResponse.Car, nil
-        } else {
-            return completeResponse.Car, fmt.Errorf("erro ao concluir recarga: %v", completeResponse.Status)
-        }
-    } else {
-        return responseMessage.Car, fmt.Errorf("erro ao iniciar recarga: %v", responseMessage.Status)
-    }
+		// Processar a resposta de conclusão da recarga
+		if completeResponse.Status == types.Success {
+			fmt.Println("Recarga concluída com sucesso.")
+			return completeResponse.Car, nil
+		} else {
+			return completeResponse.Car, fmt.Errorf("erro ao concluir recarga: %v", completeResponse.Status)
+		}
+	} else {
+		return responseMessage.Car, fmt.Errorf("erro ao iniciar recarga: %v", responseMessage.Status)
+	}
 }
 
-func HandlePayRechargeResponse(responseMessage types.Message) (types.Car, error){
+func HandlePayRechargeResponse(responseMessage types.Message) (types.Car, error) {
 	if responseMessage.Status == types.Success {
 		fmt.Println("Recarga paga com sucesso.")
 		return responseMessage.Car, nil
@@ -230,61 +230,59 @@ func HandlePayRechargeResponse(responseMessage types.Message) (types.Car, error)
 	}
 }
 func HandleListStationsResponse(responseMessage types.Message) (types.Car, error) {
-    if responseMessage.Status == types.Success {
-        fmt.Println("Estações:")
-        for _, station := range responseMessage.StationList {
-            fmt.Printf(
-                `ID: %d
+	if responseMessage.Status == types.Success {
+		fmt.Println("Estações:")
+		for _, station := range responseMessage.StationList {
+			fmt.Printf(
+				`ID: %d
 Coordenadas: (x: %d, y: %d)`,
-                station.StationID, station.CoordX, station.CoordY,
-            )
-            fmt.Println()
-        }
-        return types.Car{}, nil
-    } else {
-        return types.Car{}, fmt.Errorf("erro ao listar estações")
-    }
+				station.StationID, station.CoordX, station.CoordY,
+			)
+			fmt.Println()
+		}
+		return types.Car{}, nil
+	} else {
+		return types.Car{}, fmt.Errorf("erro ao listar estações")
+	}
 }
 
 // Monitoramento da bateria
 func (c *Client) batteryMonitor() {
-    for {
-        select {
-        case <-c.batteryTicker.C:
-            c.batteryMutex.Lock()
-            if c.car.BatteryLevel > 0 {
-                c.car.BatteryLevel--
-                fmt.Printf("🔋 Bateria atual: %d%%\n", c.car.BatteryLevel)
-                
-                // Alerta aos 15%
-                if c.car.BatteryLevel == 15 {
-                    fmt.Println("⚠️  Bateria crítica! Procure uma estação!")
-                }
-            }
-            c.batteryMutex.Unlock()
-        
-        case <-c.syncTicker.C:
-            c.syncBatteryWithServer()
-        }
-    }
+	for {
+		select {
+		case <-c.batteryTicker.C:
+			c.batteryMutex.Lock()
+			if c.car.BatteryLevel > 0 {
+				c.car.BatteryLevel--
+				// fmt.Printf("🔋 Bateria atual: %d%%\n", c.car.BatteryLevel)
+
+				// Alerta aos 15%
+				// if c.car.BatteryLevel == 15 {
+				// 	fmt.Println("⚠️  Bateria crítica! Procure uma estação!")
+				// }
+			}
+			c.batteryMutex.Unlock()
+
+		case <-c.syncTicker.C:
+			c.syncBatteryWithServer()
+		}
+	}
 }
 
 // Sincroniza com servidor
 func (c *Client) syncBatteryWithServer() {
-    c.batteryMutex.Lock()
-    defer c.batteryMutex.Unlock()
+	c.batteryMutex.Lock()
+	defer c.batteryMutex.Unlock()
 
-    msg := types.Message{
-        Req: types.BatterySync,
-        Car: c.car,
-    }
+	msg := types.Message{
+		Req: types.BatterySync,
+		Car: c.car,
+	}
 
-    if err := c.SendMessage(msg); err != nil {
-        fmt.Println("Erro ao sincronizar bateria:", err)
-        return
-    }
+	if err := c.SendMessage(msg); err != nil {
+		fmt.Println("Erro ao sincronizar bateria:", err)
+		return
+	}
 
-    fmt.Println("🔄 Sincronizando bateria com servidor...")
+	fmt.Println("🔄 Sincronizando bateria com servidor...")
 }
-
-

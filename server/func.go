@@ -7,6 +7,7 @@ import (
 	"math"
 	"net"
 	"os"
+	"slices"
 	"time"
 )
 
@@ -75,7 +76,6 @@ func (s *Server) HandleUserLogin(message types.Message) types.Message {
 	}
 	return responseMessage
 }
-
 
 func (s *Server) HandleListStations(message types.Message) types.Message {
 	stations, err := s.listStationsFromFile()
@@ -158,10 +158,10 @@ func (s *Server) HandlePayRecharge(message types.Message) types.Message {
 	}
 	if message.Car.ReservedStation == 0 {
 		responseMessage.Status = types.Error
-		responseMessage.Err = fmt.Errorf("Reserve a estação antes de pagar")
+		responseMessage.Err = fmt.Errorf("reserve a estação antes de pagar")
 		return responseMessage
 	}
-		
+
 	if station.InUseBy == 0 && station.CarList[0] == message.Car.CarID {
 		station.InUseBy = message.Car.CarID
 		station.CarsWaiting -= 1
@@ -222,72 +222,72 @@ func (s *Server) HandleGetRecommendedStation(message types.Message) types.Messag
 }
 
 func (s *Server) HandleRechargeComplete(message types.Message) types.Message {
-    responseMessage := types.Message{Req: types.RechargeComplete, Status: types.Success}
-    car, stationID := message.Car, message.Car.ReservedStation
+	responseMessage := types.Message{Req: types.RechargeComplete, Status: types.Success}
+	car, stationID := message.Car, message.Car.ReservedStation
 
-    // Obter a estação do arquivo
-    station, err := s.getStationFromFile(stationID)
-    if err != nil {
-        responseMessage.Status = types.Error
-        fmt.Printf("Estação não encontrada para o ID %d\n", stationID)
-        return responseMessage
-    }
+	// Obter a estação do arquivo
+	station, err := s.getStationFromFile(stationID)
+	if err != nil {
+		responseMessage.Status = types.Error
+		fmt.Printf("Estação não encontrada para o ID %d\n", stationID)
+		return responseMessage
+	}
 
-    // Validar se a estação está em uso pelo carro correto
-    if station.InUseBy != car.CarID {
-        responseMessage.Status = types.Error
-        fmt.Printf("Estação %d não está em uso pelo carro %d\n", stationID, car.CarID)
-        return responseMessage
-    }
-    // Atualizar os dados do carro e da estação
-    car.ReservedStation, car.RecomendedStation = 0, 0
-    station.InUseBy = 0
-    car.BatteryLevel = 100
+	// Validar se a estação está em uso pelo carro correto
+	if station.InUseBy != car.CarID {
+		responseMessage.Status = types.Error
+		fmt.Printf("Estação %d não está em uso pelo carro %d\n", stationID, car.CarID)
+		return responseMessage
+	}
+	// Atualizar os dados do carro e da estação
+	car.ReservedStation, car.RecomendedStation = 0, 0
+	station.InUseBy = 0
+	car.BatteryLevel = 100
 
-    err = s.saveStationToFile(station)
-    if err != nil {
-        responseMessage.Status = types.Error
-        fmt.Printf("Erro ao salvar a estação %d\n", station.StationID)
-        return responseMessage
-    }
+	err = s.saveStationToFile(station)
+	if err != nil {
+		responseMessage.Status = types.Error
+		fmt.Printf("Erro ao salvar a estação %d\n", station.StationID)
+		return responseMessage
+	}
 
-    err = s.saveCarToFile(car)
-    if err != nil {
-        responseMessage.Status = types.Error
-        fmt.Printf("Erro ao salvar o carro %d\n", car.CarID)
-        return responseMessage
-    }
+	err = s.saveCarToFile(car)
+	if err != nil {
+		responseMessage.Status = types.Error
+		fmt.Printf("Erro ao salvar o carro %d\n", car.CarID)
+		return responseMessage
+	}
 
-    fmt.Printf("Recarga concluída para o carro %d na estação %d.\n", car.CarID, station.StationID)
+	fmt.Printf("Recarga concluída para o carro %d na estação %d.\n", car.CarID, station.StationID)
 	responseMessage.Car = car
-    return responseMessage
+	return responseMessage
 }
 func (s *Server) HandleStartRecharge(message types.Message) types.Message {
-    responseMessage := types.Message{Req: types.StartRecharge, Status: types.Success}
-    car, stationID := message.Car, message.Car.ReservedStation
+	responseMessage := types.Message{Req: types.StartRecharge, Status: types.Success}
+	car, stationID := message.Car, message.Car.ReservedStation
 
-    // Obter a estação do arquivo
-    station, err := s.getStationFromFile(stationID)
-    if err != nil {
-        responseMessage.Status = types.Error
-        fmt.Printf("Estação não encontrada para o ID %d\n", stationID)
-        return responseMessage
-    }
+	// Obter a estação do arquivo
+	station, err := s.getStationFromFile(stationID)
+	if err != nil {
+		responseMessage.Status = types.Error
+		fmt.Printf("Estação não encontrada para o ID %d\n", stationID)
+		return responseMessage
+	}
 
-    // Marcar a estação como em uso pelo carro
-    station.InUseBy = car.CarID
-    err = s.saveStationToFile(station)
-    if err != nil {
-        responseMessage.Status = types.Error
-        fmt.Printf("Erro ao salvar a estação %d\n", stationID)
-        return responseMessage
-    }
+	// Marcar a estação como em uso pelo carro
+	station.InUseBy = car.CarID
+	err = s.saveStationToFile(station)
+	if err != nil {
+		responseMessage.Status = types.Error
+		fmt.Printf("Erro ao salvar a estação %d\n", stationID)
+		return responseMessage
+	}
 
-    fmt.Printf("Recarga iniciada para o carro %d na estação %d. Tempo estimado: 10 segundos.\n", car.CarID, station.StationID)
-    time.Sleep(10 * time.Second)
+	fmt.Printf("Recarga iniciada para o carro %d na estação %d. Tempo estimado: 10 segundos.\n", car.CarID, station.StationID)
+	time.Sleep(10 * time.Second)
 	//TODO o cliente ainda consegue enviar mensagens no terminal no periodo. elas são processadas em sequencia apos o tempo
 	responseMessage.Car = car
-    return responseMessage
+	return responseMessage
 }
 func (s *Server) SendResponse(conn net.Conn, responseMessage types.Message) error {
 	responseBuf, err := json.Marshal(responseMessage)
@@ -304,25 +304,25 @@ func (s *Server) SendResponse(conn net.Conn, responseMessage types.Message) erro
 
 // Funções para salvar e ler os dados em arquivos JSON
 func (s *Server) saveCarToFile(car types.Car) error {
-    cars, err := s.listCarsFromFile() 
-    if err != nil {
-        cars = []types.Car{}
-    }
+	cars, err := s.listCarsFromFile()
+	if err != nil {
+		cars = []types.Car{}
+	}
 
-    found := false
-    for i, existingCar := range cars {
-        if existingCar.CarID == car.CarID {
-            cars[i] = car
-            found = true
-            break //Interrompe o loop após encontrar o carro
-        }
-    }
+	found := false
+	for i, existingCar := range cars {
+		if existingCar.CarID == car.CarID {
+			cars[i] = car
+			found = true
+			break //Interrompe o loop após encontrar o carro
+		}
+	}
 
-    if !found {
-        cars = append(cars, car)
-    }
+	if !found {
+		cars = append(cars, car)
+	}
 
-    return s.saveJSONToFile("../data/cars.json", cars)
+	return s.saveJSONToFile("../data/cars.json", cars)
 }
 
 func (s *Server) saveStationToFile(station types.Station) error {
@@ -394,7 +394,7 @@ func (s *Server) getCarFromFile(id int) (types.Car, error) {
 	return types.Car{}, err
 }
 
-func (s *Server)getStationFromFile(id int) (types.Station, error) {
+func (s *Server) getStationFromFile(id int) (types.Station, error) {
 	stations, err := s.listStationsFromFile()
 	if err != nil {
 		return types.Station{}, err
@@ -439,74 +439,93 @@ func (s *Server) getBestStation(carId int) (types.Station, error) {
 }
 
 func (s *Server) startCarMovement(car types.Car, station types.Station) {
-    var speed = 0.5
-    ticker := time.NewTicker(1 * time.Second)
-    defer ticker.Stop()
-    fmt.Printf("Trajeto do carro %d: para a estação %d\n", car.CarID, station.StationID)
-    coordX := float64(car.CoordX)
-    coordY := float64(car.CoordY)
-    stationX := float64(station.CoordX)
-    stationY := float64(station.CoordY)
+	var speed = 0.5
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
+	fmt.Printf("Trajeto do carro %d: para a estação %d\n", car.CarID, station.StationID)
+	coordX := float64(car.CoordX)
+	coordY := float64(car.CoordY)
+	stationX := float64(station.CoordX)
+	stationY := float64(station.CoordY)
 
-    for {
-        select {
-        case <-ticker.C:
-            if coordX < stationX {
-                coordX += speed
-                if coordX > stationX {
-                    coordX = stationX
-                }
-            } else if coordX > stationX {
-                coordX -= speed
-                if coordX < stationX {
-                    coordX = stationX
-                }
-            }
-            if coordY < stationY {
-                coordY += speed
-                if coordY > stationY {
-                    coordY = stationY
-                }
-            } else if coordY > stationY {
-                coordY -= speed
-                if coordY < stationY {
-                    coordY = stationY
-                }
-            }
-            car.CoordX = int(coordX)
-            car.CoordY = int(coordY)
-            err := s.saveCarToFile(car)
-            if err != nil {
-                fmt.Printf("Erro ao salvar a posição do carro %d: %v\n", car.CarID, err)
-                return
-            }
-            if math.Abs(coordX-stationX) < 0.01 && math.Abs(coordY-stationY) < 0.01 {
-                fmt.Printf("Carro %d chegou à estação %d.\n", car.CarID, station.StationID)
-                return
-            }
-        }
-    }
+	for {
+		select {
+		case <-ticker.C:
+			if coordX < stationX {
+				coordX += speed
+				if coordX > stationX {
+					coordX = stationX
+				}
+			} else if coordX > stationX {
+				coordX -= speed
+				if coordX < stationX {
+					coordX = stationX
+				}
+			} else if coordY < stationY {
+				coordY += speed
+				if coordY > stationY {
+					coordY = stationY
+				}
+			} else if coordY > stationY {
+				coordY -= speed
+				if coordY < stationY {
+					coordY = stationY
+				}
+			}
+			car.CoordX = int(coordX)
+			car.CoordY = int(coordY)
+			err := s.saveCarToFile(car)
+			if err != nil {
+				fmt.Printf("Erro ao salvar a posição do carro %d: %v\n", car.CarID, err)
+				return
+			}
+			if math.Abs(coordX-stationX) < 0.01 && math.Abs(coordY-stationY) < 0.01 {
+				fmt.Printf("Carro %d chegou à estação %d.\n", car.CarID, station.StationID)
+				return
+			}
+		}
+	}
 }
-
 
 func (s *Server) HandleBatterySync(message types.Message) types.Message {
-    s.sessionsMu.Lock()
-    defer s.sessionsMu.Unlock()
+	s.sessionsMu.Lock()
+	defer s.sessionsMu.Unlock()
 
-    if car, exists := s.loggedCars[message.Car.CarID]; exists {
-        // Atualiza nível da bateria
-        car.BatteryLevel = message.Car.BatteryLevel
-        s.loggedCars[message.Car.CarID] = car
-        
-        // Persiste no arquivo diretamente
-        if err := s.saveCarToFile(car); err != nil {
-            fmt.Printf("[ERRO] Falha ao salvar bateria do carro %d: %v\n", car.CarID, err)
-            return types.Message{Status: types.Error}
-        }
-        
-        fmt.Printf("[SYNC] Bateria do carro %d atualizada para %d%%\n", car.CarID, car.BatteryLevel)
-    }
+	if car, exists := s.loggedCars[message.Car.CarID]; exists {
+		// Atualiza nível da bateria
+		car.BatteryLevel = message.Car.BatteryLevel
+		s.loggedCars[message.Car.CarID] = car
 
-    return types.Message{Status: types.Success}
+		// Persiste no arquivo diretamente
+		if err := s.saveCarToFile(car); err != nil {
+			fmt.Printf("[ERRO] Falha ao salvar bateria do carro %d: %v\n", car.CarID, err)
+			return types.Message{Status: types.Error}
+		}
+
+		fmt.Printf("[SYNC] Bateria do carro %d atualizada para %d%%\n", car.CarID, car.BatteryLevel)
+	}
+
+	return types.Message{Status: types.Success}
 }
 
+func (s *Server) CloseConnection(car types.Car) {
+	reservedStationID := car.ReservedStation
+	fmt.Printf("Carro %d desconectado da estação %d\n", car.CarID, reservedStationID)
+	if reservedStationID != 0 {
+		reservedStation, err := s.getStationFromFile(reservedStationID)
+		if err != nil {
+			fmt.Println("Erro em CloseConnecton: ", err)
+		}
+
+		reservedStation.CarsWaiting -= 1
+		index := slices.Index(reservedStation.CarList, car.CarID)
+		reservedStation.CarList = slices.Delete(reservedStation.CarList, index, index+1)
+		if reservedStation.InUseBy == car.CarID {
+			reservedStation.InUseBy = 0
+		}
+		car.RecomendedStation = 0
+		car.ReservedStation = 0
+		s.saveCarToFile(car)
+		s.saveStationToFile(reservedStation)
+	}
+}

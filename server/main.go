@@ -10,19 +10,19 @@ import (
 )
 
 type Server struct {
-    address  string
-    listener net.Listener
-    quitch   chan struct{}
-    loggedCars map[int]types.Car  // Novo: mapa de carros logados
-    sessionsMu sync.Mutex
+	address    string
+	listener   net.Listener
+	quitch     chan struct{}
+	loggedCars map[int]types.Car // Novo: mapa de carros logados
+	sessionsMu sync.Mutex
 }
 
 func NewServer(address string) *Server {
-    return &Server{
-        address: address,
-        quitch:  make(chan struct{}),
-        loggedCars: make(map[int]types.Car),
-    }
+	return &Server{
+		address:    address,
+		quitch:     make(chan struct{}),
+		loggedCars: make(map[int]types.Car),
+	}
 }
 
 func (s *Server) Start() error {
@@ -53,24 +53,25 @@ func (s *Server) acceptLoop() {
 }
 
 func (s *Server) readLoop(conn net.Conn) {
+	car := types.Car{}
 	for {
 		//@DaviOSC usei pra escrever o JSON no terminal
 		// decoder := json.NewDecoder(conn)
 		// message := types.Message{}
-        // err := decoder.Decode(&message)
-        // if err != nil {
-        //     fmt.Println("Erro ao decodificar JSON:", err)
-        
-        // }
+		// err := decoder.Decode(&message)
+		// if err != nil {
+		//     fmt.Println("Erro ao decodificar JSON:", err)
 
-        // formattedJSON, err := json.MarshalIndent(message, "", "  ")
-        // if err != nil {
-        //     fmt.Println("Erro ao formatar JSON:", err)
-            
-        // }
-        // fmt.Println("JSON recebido formatado:")
-        // fmt.Println(string(formattedJSON))
-        // responseMessage := types.Message{}
+		// }
+
+		// formattedJSON, err := json.MarshalIndent(message, "", "  ")
+		// if err != nil {
+		//     fmt.Println("Erro ao formatar JSON:", err)
+
+		// }
+		// fmt.Println("JSON recebido formatado:")
+		// fmt.Println(string(formattedJSON))
+		// responseMessage := types.Message{}
 
 		decoder := json.NewDecoder(conn)
 		message := types.Message{}
@@ -79,10 +80,10 @@ func (s *Server) readLoop(conn net.Conn) {
 			fmt.Println("Erro ao decodificar JSON:", err)
 			break
 		}
+		car = message.Car
 		responseMessage := types.Message{}
 
 		switch message.Req {
-
 		case types.RegisterCar:
 			responseMessage = s.HandleRegisterCar(message)
 
@@ -100,7 +101,7 @@ func (s *Server) readLoop(conn net.Conn) {
 
 		case types.RechargeComplete:
 			responseMessage = s.HandleRechargeComplete(message)
-		
+
 		case types.StartRecharge:
 			responseMessage = s.HandleStartRecharge(message)
 
@@ -109,7 +110,7 @@ func (s *Server) readLoop(conn net.Conn) {
 
 		case types.GetRecommendedStation:
 			responseMessage = s.HandleGetRecommendedStation(message)
-			
+
 		case types.BatterySync:
 			responseMessage = s.HandleBatterySync(message)
 		// case types.UserLogout:  // Novo caso
@@ -125,7 +126,9 @@ func (s *Server) readLoop(conn net.Conn) {
 		if err != nil {
 			log.Fatal("Erro ao enviar resposta:", err)
 		}
+		car = responseMessage.Car
 	}
+	defer s.CloseConnection(car)
 }
 
 func main() {
