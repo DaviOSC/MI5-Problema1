@@ -44,6 +44,7 @@ const (
 	GeneratePayment                       // Gerar um pagamento, passando o ID do pagamento e o valor: server -> carro
 	PayRecharge                           // Pagar uma recarga, passando o ID do pagamento: carro -> server(Obs:fazer antes da reserva o pagamento)
 	UserLogin
+	BatterySync                           // Sincronizar a bateria do carro, passando o ID do carro e o nível da bateria: carro -> server
 	ListStations
 	PaymentHistory
 )
@@ -59,6 +60,7 @@ var RequestsNames = map[Requests]string{
 	GeneratePayment:       "generate_payment",
 	PayRecharge:           "pay_recharge",
 	UserLogin:             "user_login",
+	BatterySync:           "battery_sync",
 	ListStations:          "list_stations",
 	PaymentHistory:        "payment_history",
 }

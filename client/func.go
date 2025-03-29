@@ -245,3 +245,44 @@ Coordenadas: (x: %d, y: %d)`,
         return types.Car{}, fmt.Errorf("erro ao listar estações")
     }
 }
+
+// Monitoramento da bateria
+func (c *Client) batteryMonitor() {
+    for {
+        select {
+        case <-c.batteryTicker.C:
+            c.batteryMutex.Lock()
+            if c.car.BatteryLevel > 0 {
+                c.car.BatteryLevel--
+                fmt.Printf("🔋 Bateria atual: %d%%\n", c.car.BatteryLevel)
+                
+                // Alerta aos 15%
+                if c.car.BatteryLevel == 15 {
+                    fmt.Println("⚠️  Bateria crítica! Procure uma estação!")
+                }
+            }
+            c.batteryMutex.Unlock()
+        
+        case <-c.syncTicker.C:
+            c.syncBatteryWithServer()
+        }
+    }
+}
+
+// Sincroniza com servidor
+func (c *Client) syncBatteryWithServer() {
+    c.batteryMutex.Lock()
+    defer c.batteryMutex.Unlock()
+
+    msg := types.Message{
+        Req: types.BatterySync,
+        Car: c.car,
+    }
+
+    if err := c.SendMessage(msg); err != nil {
+        fmt.Println("Erro ao sincronizar bateria:", err)
+        return
+    }
+
+    fmt.Println("🔄 Sincronizando bateria com servidor...")
+}

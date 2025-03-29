@@ -7,22 +7,21 @@ import (
 	"main/types"
 	"net"
 	"sync"
-	"time"
 )
 
 type Server struct {
     address  string
     listener net.Listener
     quitch   chan struct{}
-    mu       sync.Mutex         // Novo: Mutex para sincronização
-    ticker   *time.Ticker       // Novo: Ticker para decrementar bateria
+    loggedCars map[int]types.Car  // Novo: mapa de carros logados
+    sessionsMu sync.Mutex
 }
 
 func NewServer(address string) *Server {
     return &Server{
         address: address,
         quitch:  make(chan struct{}),
-        ticker:  time.NewTicker(5 * time.Second), // Ticker a cada 5s
+        loggedCars: make(map[int]types.Car),
     }
 }
 
@@ -37,7 +36,6 @@ func (s *Server) Start() error {
 	fmt.Println("Servidor iniciado na porta", s.address)
 
 	go s.acceptLoop()
-	go s.runBatteryDecrement()
 	<-s.quitch
 	return nil
 }
@@ -86,32 +84,36 @@ func (s *Server) readLoop(conn net.Conn) {
 		switch message.Req {
 
 		case types.RegisterCar:
-			responseMessage = HandleRegisterCar(message)
+			responseMessage = s.HandleRegisterCar(message)
 
 		case types.RegisterStation:
-			responseMessage = HandleRegisterStation(message)
+			responseMessage = s.HandleRegisterStation(message)
 
 		case types.UserLogin:
-			responseMessage = HandleUserLogin(message)
+			responseMessage = s.HandleUserLogin(message)
 
 		case types.ListStations:
-			responseMessage = HandleListStations(message)
+			responseMessage = s.HandleListStations(message)
 
 		case types.ReserveStation:
-			responseMessage = HandleReserveStation(message)
+			responseMessage = s.HandleReserveStation(message)
 
 		case types.RechargeComplete:
-			responseMessage = HandleRechargeComplete(message)
+			responseMessage = s.HandleRechargeComplete(message)
 		
 		case types.StartRecharge:
-			responseMessage = HandleStartRecharge(message)
+			responseMessage = s.HandleStartRecharge(message)
 
 		case types.PayRecharge:
-			responseMessage = HandlePayRecharge(message)
+			responseMessage = s.HandlePayRecharge(message)
 
 		case types.GetRecommendedStation:
-			responseMessage = HandleGetRecommendedStation(message)
-
+			responseMessage = s.HandleGetRecommendedStation(message)
+			
+		case types.BatterySync:
+			responseMessage = s.HandleBatterySync(message)
+		// case types.UserLogout:  // Novo caso
+		// 	responseMessage = s.HandleUserLogout(message)
 		// case types.PaymentHistory:
 		// 	responseMessage = HandlePaymentHistory(message)
 		default:
@@ -119,7 +121,7 @@ func (s *Server) readLoop(conn net.Conn) {
 			fmt.Println("Requisição inválida")
 		}
 
-		err = SendResponse(conn, responseMessage)
+		err = s.SendResponse(conn, responseMessage)
 		if err != nil {
 			log.Fatal("Erro ao enviar resposta:", err)
 		}

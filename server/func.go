@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"main/types"
 	"math"
 	"net"
@@ -11,11 +10,11 @@ import (
 	"time"
 )
 
-func HandleRegisterCar(message types.Message) types.Message {
+func (s *Server) HandleRegisterCar(message types.Message) types.Message {
 	car := message.Car
 	responseMessage := types.Message{Req: types.RegisterCar}
 
-	err := saveCarToFile(car)
+	err := s.saveCarToFile(car)
 	if err != nil {
 		responseMessage.Status = types.Error
 		fmt.Println("Erro ao salvar o carro")
@@ -27,11 +26,11 @@ func HandleRegisterCar(message types.Message) types.Message {
 	return responseMessage
 }
 
-func HandleRegisterStation(message types.Message) types.Message {
+func (s *Server) HandleRegisterStation(message types.Message) types.Message {
 	station := message.Station
 	responseMessage := types.Message{Req: types.RegisterStation}
 
-	err := saveStationToFile(station)
+	err := s.saveStationToFile(station)
 	if err != nil {
 		responseMessage.Status = types.Error
 		fmt.Println("Erro ao salvar a estação")
@@ -43,36 +42,43 @@ func HandleRegisterStation(message types.Message) types.Message {
 	return responseMessage
 }
 
-func HandleUserLogin(message types.Message) types.Message {
+func (s *Server) HandleUserLogin(message types.Message) types.Message {
 	loginData := message.Car
 	responseMessage := types.Message{Req: types.UserLogin}
 
-	cars, err := listCarsFromFile()
+	cars, err := s.listCarsFromFile()
 	if err != nil {
 		responseMessage.Status = types.Error
 		fmt.Println("Erro ao acessar os dados dos carros")
+		return responseMessage
+	}
 
-	} else {
-		valid := false
-		for _, car := range cars {
-			if car.User == loginData.User && car.Password == loginData.Password {
-				valid = true
-				responseMessage.Status = types.Success
-				responseMessage.Car = car
-				fmt.Println("Login bem-sucedido")
-				break
-			}
+	valid := false
+	for _, car := range cars {
+		if car.User == loginData.User && car.Password == loginData.Password {
+			valid = true
+			responseMessage.Status = types.Success
+			responseMessage.Car = car
+
+			s.sessionsMu.Lock()
+			s.loggedCars[car.CarID] = car
+			s.sessionsMu.Unlock()
+
+			fmt.Println("Login bem-sucedido")
+			break
 		}
-		if !valid {
-			responseMessage.Status = types.Error
-			fmt.Println("Usuário ou senha inválidos")
-		}
+	}
+
+	if !valid {
+		responseMessage.Status = types.Error
+		fmt.Println("Usuário ou senha inválidos")
 	}
 	return responseMessage
 }
 
-func HandleListStations(message types.Message) types.Message {
-	stations, err := listStationsFromFile()
+
+func (s *Server) HandleListStations(message types.Message) types.Message {
+	stations, err := s.listStationsFromFile()
 	responseMessage := types.Message{Req: types.ListStations}
 
 	if err != nil {
@@ -87,7 +93,7 @@ func HandleListStations(message types.Message) types.Message {
 	return responseMessage
 }
 
-func HandleReserveStation(message types.Message) types.Message {
+func (s *Server) HandleReserveStation(message types.Message) types.Message {
 	responseMessage := types.Message{Req: types.ReserveStation, Status: types.Success}
 	var err error
 	station := types.Station{}
@@ -95,14 +101,14 @@ func HandleReserveStation(message types.Message) types.Message {
 
 	// Verifica se o carro possue uma estação recomendada
 	if stationID == 0 {
-		station, err = getBestStation(message.Car.CarID)
+		station, err = s.getBestStation(message.Car.CarID)
 		if err != nil {
 			responseMessage.Status = types.Error
 			fmt.Printf("Estação não encontrada, na requisição ReserveStation, para o carro de id %d\n", message.Car.CarID)
 			return responseMessage
 		}
 	} else {
-		station, err = getStationFromFile(stationID)
+		station, err = s.getStationFromFile(stationID)
 		if err != nil {
 			responseMessage.Status = types.Error
 			fmt.Printf("Estação não encontrada, na requisição ReserveStation, para a estação de id %d\n", stationID)
@@ -120,7 +126,7 @@ func HandleReserveStation(message types.Message) types.Message {
 	// Atualizando dados da estação e salvando em JSON
 	station.CarList = append(station.CarList, message.Car.CarID)
 	station.CarsWaiting += 1
-	err = saveStationToFile(station)
+	err = s.saveStationToFile(station)
 	if err != nil {
 		responseMessage.Status = types.Error
 		fmt.Printf("Erro ao salvar a estação, na requisição ReserveStation, para a estação de id %d\n", station.StationID)
@@ -129,7 +135,7 @@ func HandleReserveStation(message types.Message) types.Message {
 	message.Car.ReservedStation = station.StationID
 
 	responseMessage.Car = message.Car
-	err = saveCarToFile(message.Car)
+	err = s.saveCarToFile(message.Car)
 	if err != nil {
 		responseMessage.Status = types.Error
 		fmt.Printf("Erro ao salvar o carro, na requisição ReserveStation, para o carro de id %d\n", message.Car.CarID)
@@ -139,10 +145,10 @@ func HandleReserveStation(message types.Message) types.Message {
 	return responseMessage
 }
 
-func HandlePayRecharge(message types.Message) types.Message {
+func (s *Server) HandlePayRecharge(message types.Message) types.Message {
 	responseMessage := types.Message{Req: types.PayRecharge, Status: types.Success}
 	stationID := message.Car.ReservedStation
-	station, err := getStationFromFile(stationID)
+	station, err := s.getStationFromFile(stationID)
 	if err != nil {
 		responseMessage.Status = types.Error
 		fmt.Printf("Estação não encontrada, na requisição PayRecharge, para a estação de id %d\n", stationID)
@@ -155,7 +161,7 @@ func HandlePayRecharge(message types.Message) types.Message {
 		station.InUseBy = message.Car.CarID
 		station.CarsWaiting -= 1
 		station.CarList = station.CarList[1:]
-		err := saveStationToFile(station)
+		err := s.saveStationToFile(station)
 		if err != nil {
 			responseMessage.Status = types.Error
 			fmt.Printf("Erro ao salvar a estação, na requisição PayRecharge, para a estação de id %d\n", stationID)
@@ -163,7 +169,7 @@ func HandlePayRecharge(message types.Message) types.Message {
 		}
 		// TODO simular pagamento
 		responseMessage.Car = message.Car
-		err = saveCarToFile(message.Car)
+		err = s.saveCarToFile(message.Car)
 		if err != nil {
 			responseMessage.Status = types.Error
 			fmt.Printf("Erro ao salvar o carro, na requisição PayRecharge, para o carro de id %d\n", message.Car.CarID)
@@ -187,11 +193,11 @@ func HandlePayRecharge(message types.Message) types.Message {
 
 // }
 
-func HandleGetRecommendedStation(message types.Message) types.Message {
+func (s *Server) HandleGetRecommendedStation(message types.Message) types.Message {
 	car := message.Car
 	responseMessage := types.Message{Req: types.GetRecommendedStation}
 	fmt.Printf("Requisição GetRecommendedStation para o carro de id %d\n", car.CarID)
-	station, err := getBestStation(car.CarID)
+	station, err := s.getBestStation(car.CarID)
 	if err != nil {
 		responseMessage.Status = types.Error
 		fmt.Println("Estação não encontrada, na requisição GetRecommendedStation")
@@ -200,7 +206,7 @@ func HandleGetRecommendedStation(message types.Message) types.Message {
 		responseMessage.Station = station
 		car.RecomendedStation = station.StationID
 		responseMessage.Car = car
-		err = saveCarToFile(car)
+		err = s.saveCarToFile(car)
 		if err != nil {
 			responseMessage.Status = types.Success
 		}
@@ -210,12 +216,12 @@ func HandleGetRecommendedStation(message types.Message) types.Message {
 	return responseMessage
 }
 
-func HandleRechargeComplete(message types.Message) types.Message {
+func (s *Server) HandleRechargeComplete(message types.Message) types.Message {
     responseMessage := types.Message{Req: types.RechargeComplete, Status: types.Success}
     car, stationID := message.Car, message.Car.ReservedStation
 
     // Obter a estação do arquivo
-    station, err := getStationFromFile(stationID)
+    station, err := s.getStationFromFile(stationID)
     if err != nil {
         responseMessage.Status = types.Error
         fmt.Printf("Estação não encontrada para o ID %d\n", stationID)
@@ -232,14 +238,14 @@ func HandleRechargeComplete(message types.Message) types.Message {
     car.ReservedStation, car.RecomendedStation = 0, 0
     station.InUseBy = 0
 
-    err = saveStationToFile(station)
+    err = s.saveStationToFile(station)
     if err != nil {
         responseMessage.Status = types.Error
         fmt.Printf("Erro ao salvar a estação %d\n", station.StationID)
         return responseMessage
     }
 
-    err = saveCarToFile(car)
+    err = s.saveCarToFile(car)
     if err != nil {
         responseMessage.Status = types.Error
         fmt.Printf("Erro ao salvar o carro %d\n", car.CarID)
@@ -250,12 +256,12 @@ func HandleRechargeComplete(message types.Message) types.Message {
 	responseMessage.Car = car
     return responseMessage
 }
-func HandleStartRecharge(message types.Message) types.Message {
+func (s *Server) HandleStartRecharge(message types.Message) types.Message {
     responseMessage := types.Message{Req: types.StartRecharge, Status: types.Success}
     car, stationID := message.Car, message.Car.ReservedStation
 
     // Obter a estação do arquivo
-    station, err := getStationFromFile(stationID)
+    station, err := s.getStationFromFile(stationID)
     if err != nil {
         responseMessage.Status = types.Error
         fmt.Printf("Estação não encontrada para o ID %d\n", stationID)
@@ -264,7 +270,7 @@ func HandleStartRecharge(message types.Message) types.Message {
 
     // Marcar a estação como em uso pelo carro
     station.InUseBy = car.CarID
-    err = saveStationToFile(station)
+    err = s.saveStationToFile(station)
     if err != nil {
         responseMessage.Status = types.Error
         fmt.Printf("Erro ao salvar a estação %d\n", stationID)
@@ -277,41 +283,44 @@ func HandleStartRecharge(message types.Message) types.Message {
 	responseMessage.Car = car
     return responseMessage
 }
-func SendResponse(conn net.Conn, responseMessage types.Message) error {
+func (s *Server) SendResponse(conn net.Conn, responseMessage types.Message) error {
 	responseBuf, err := json.Marshal(responseMessage)
 	if err != nil {
-		fmt.Println("Erro ao serializar resposta:", err)
-		return err
-	}
-	_, err = conn.Write(responseBuf)
-	if err != nil {
-		fmt.Println("Erro ao enviar resposta:", err)
-		return err
+		return fmt.Errorf("erro ao serializar resposta: %w", err)
 	}
 
+	_, err = conn.Write(responseBuf)
+	if err != nil {
+		return fmt.Errorf("erro ao enviar resposta: %w", err)
+	}
 	return nil
 }
 
 // Funções para salvar e ler os dados em arquivos JSON
-func saveCarToFile(car types.Car) error {
-	cars, err := listCarsFromFile()
-	if err != nil {
-		cars = []types.Car{}
-	}
-	for i, existingCar := range cars {
-		if existingCar.CarID == car.CarID {
-			cars[i] = car
-			fmt.Println("Tentativa de alterar um carro existente")
+func (s *Server) saveCarToFile(car types.Car) error {
+    cars, err := s.listCarsFromFile() 
+    if err != nil {
+        cars = []types.Car{}
+    }
 
-			return saveJSONToFile("../data/cars.json", cars)
-		}
-	}
-	cars = append(cars, car)
-	return saveJSONToFile("../data/cars.json", cars)
+    found := false
+    for i, existingCar := range cars {
+        if existingCar.CarID == car.CarID {
+            cars[i] = car
+            found = true
+            break //Interrompe o loop após encontrar o carro
+        }
+    }
+
+    if !found {
+        cars = append(cars, car)
+    }
+
+    return s.saveJSONToFile("../data/cars.json", cars)
 }
 
-func saveStationToFile(station types.Station) error {
-	stations, err := listStationsFromFile()
+func (s *Server) saveStationToFile(station types.Station) error {
+	stations, err := s.listStationsFromFile()
 	if err != nil {
 		stations = []types.Station{}
 	}
@@ -319,14 +328,14 @@ func saveStationToFile(station types.Station) error {
 		if existingStation.StationID == station.StationID {
 			stations[i] = station
 			fmt.Println("Tentativa de alterar uma estação existente")
-			return saveJSONToFile("../data/stations.json", stations)
+			return s.saveJSONToFile("../data/stations.json", stations)
 		}
 	}
 	stations = append(stations, station)
-	return saveJSONToFile("../data/stations.json", stations)
+	return s.saveJSONToFile("../data/stations.json", stations)
 }
 
-func saveJSONToFile(fileName string, v interface{}) error {
+func (s *Server) saveJSONToFile(fileName string, v interface{}) error {
 	jsonData, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
 		fmt.Println("Erro ao serializar JSON:", err)
@@ -340,7 +349,7 @@ func saveJSONToFile(fileName string, v interface{}) error {
 	return nil
 }
 
-func listCarsFromFile() ([]types.Car, error) {
+func (s *Server) listCarsFromFile() ([]types.Car, error) {
 	var cars []types.Car
 	data, err := os.ReadFile("../data/cars.json")
 	if err != nil {
@@ -353,7 +362,7 @@ func listCarsFromFile() ([]types.Car, error) {
 	return cars, nil
 }
 
-func listStationsFromFile() ([]types.Station, error) {
+func (s *Server) listStationsFromFile() ([]types.Station, error) {
 	var stations []types.Station
 	data, err := os.ReadFile("../data/stations.json")
 	if err != nil {
@@ -366,8 +375,8 @@ func listStationsFromFile() ([]types.Station, error) {
 	return stations, nil
 }
 
-func getCarFromFile(id int) (types.Car, error) {
-	cars, err := listCarsFromFile()
+func (s *Server) getCarFromFile(id int) (types.Car, error) {
+	cars, err := s.listCarsFromFile()
 	if err != nil {
 		return types.Car{}, err
 	}
@@ -379,8 +388,8 @@ func getCarFromFile(id int) (types.Car, error) {
 	return types.Car{}, err
 }
 
-func getStationFromFile(id int) (types.Station, error) {
-	stations, err := listStationsFromFile()
+func (s *Server)getStationFromFile(id int) (types.Station, error) {
+	stations, err := s.listStationsFromFile()
 	if err != nil {
 		return types.Station{}, err
 	}
@@ -392,12 +401,12 @@ func getStationFromFile(id int) (types.Station, error) {
 	return types.Station{}, err
 }
 
-func getBestStation(carId int) (types.Station, error) {
-	stations, err := listStationsFromFile()
+func (s *Server) getBestStation(carId int) (types.Station, error) {
+	stations, err := s.listStationsFromFile()
 	if err != nil {
 		return types.Station{}, err
 	}
-	cars, err := listCarsFromFile()
+	cars, err := s.listCarsFromFile()
 	if err != nil {
 		return types.Station{}, err
 	}
@@ -424,43 +433,25 @@ func getBestStation(carId int) (types.Station, error) {
 	return bestStation, nil
 }
 
-// Rotina que gerencia o decremento da bateria
-func (s *Server) runBatteryDecrement() {
-    for {
-        select {
-        case <-s.ticker.C:
-            s.decrementAllCarsBattery()
-        case <-s.quitch:
-            s.ticker.Stop()
-            return
+
+func (s *Server) HandleBatterySync(message types.Message) types.Message {
+    s.sessionsMu.Lock()
+    defer s.sessionsMu.Unlock()
+
+    if car, exists := s.loggedCars[message.Car.CarID]; exists {
+        // Atualiza nível da bateria
+        car.BatteryLevel = message.Car.BatteryLevel
+        s.loggedCars[message.Car.CarID] = car
+        
+        // Persiste no arquivo diretamente
+        if err := s.saveCarToFile(car); err != nil {
+            fmt.Printf("[ERRO] Falha ao salvar bateria do carro %d: %v\n", car.CarID, err)
+            return types.Message{Status: types.Error}
         }
+        
+        fmt.Printf("[SYNC] Bateria do carro %d atualizada para %d%%\n", car.CarID, car.BatteryLevel)
     }
+
+    return types.Message{Status: types.Success}
 }
 
-// Função que decrementa a bateria de todos os carros
-func (s *Server) decrementAllCarsBattery() {
-    s.mu.Lock()
-    defer s.mu.Unlock()
-
-    cars, err := listCarsFromFile()
-    if err != nil {
-        log.Println("Erro ao ler carros:", err)
-        return
-    }
-
-    updated := false
-    for i := range cars {
-        if cars[i].BatteryLevel > 0 {
-            cars[i].BatteryLevel--
-            updated = true
-        }
-    }
-
-    if updated {
-        if err := saveJSONToFile("../data/cars.json", cars); err != nil {
-            log.Println("Erro ao salvar carros atualizados:", err)
-        } else {
-            log.Println("Bateria decrementada para todos os carros")
-        }
-    }
-}

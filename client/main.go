@@ -6,22 +6,38 @@ import (
 	"log"
 	"main/types"
 	"net"
+	"time"
+	"sync"
 )
 
 type Client struct {
 	conn net.Conn
 	car  types.Car
+	batteryTicker *time.Ticker
+    syncTicker    *time.Ticker
+    batteryMutex  sync.Mutex
 }
 
 func NewClient() *Client {
-	// Conectar ao servidor
-	conn, err := net.Dial("tcp", "localhost:8080")
-	if err != nil {
-		// Se houver um erro ao conectar, o programa será encerrado
-		log.Fatal("Erro ao conectar ao servidor:", err)
-	}
-	// Garantir que a conexão será fechada ao final da execução
-	return &Client{conn: conn, car: types.Car{}}
+    // Conectar ao servidor
+    conn, err := net.Dial("tcp", "localhost:8080")
+    if err != nil {
+        log.Fatal("Erro ao conectar ao servidor:", err)
+    }
+
+    // Criar client com os novos campos
+    c := &Client{
+        conn:          conn,
+        car:          types.Car{},
+        batteryTicker: time.NewTicker(5 * time.Second),  // Decremento a cada 5s
+        syncTicker:    time.NewTicker(60 * time.Second), // Sincronização a cada 60s
+        batteryMutex:  sync.Mutex{},
+    }
+
+    // Iniciar monitoramento de bateria em goroutine separada
+    go c.batteryMonitor()
+
+    return c
 }
 
 func (c *Client) SendMessage(message types.Message) error {
