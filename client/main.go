@@ -92,11 +92,12 @@ func main() {
 1 - Registrar um Carro
 2 - Pedir Recomendação de Estação
 3 - Reservar Estação
-4 - Iniciar a recarga
-5 - Pagar Recarga
-6 - Listar Estações
-7 - Listar Histórico de Recargas
-8 - Sair`)
+4 - Ir para Estação
+5 - Iniciar a recarga
+6 - Pagar Recarga
+7 - Listar Estações
+8 - Listar Histórico de Recargas
+9 - Sair`)
 		// Ler a escolha do usuário
 		fmt.Scanln(&choice)
 
@@ -120,26 +121,31 @@ func main() {
 				log.Fatal("Erro ao registrar o carro:", err)
 			}
 		case "4":
+			message, err = HandleGetReservedStation(client.car)
+			if err != nil {
+				log.Fatal("Erro ao retornar a estação:", err)
+			}
+		case "5":
 			message, err = HandleStartRecharge(client.car)
 			if err != nil {
 				log.Fatal("Erro ao iniciar a recarga:", err)
 			}
-		case "5":
+		case "6":
 			message, err = HandlePayRecharge(client.car)
 			if err != nil {
 				log.Fatal("Erro ao registrar o carro:", err)
 			}
-		case "6":
+		case "7":
 			message, err = HandleListStations()
 			if err != nil {
 				log.Fatal("Erro ao listar as estações:", err)
 			}
-		case "7":
+		case "8":
 			message, err = HandlePaymentHistory(client.car)
 			if err != nil {
 				log.Fatal("Erro ao listar o histórico de pagamentos:", err)
 			}
-		case "8":
+		case "9":
 			log.Fatal("Saindo...")
 		default:
 			fmt.Println("Opção inválida.")
@@ -198,6 +204,9 @@ func main() {
 			if err != nil {
 				fmt.Println("Erro:", err)
 			}
+		case types.GetReservedStation:
+			client.car = responseMessage.Car
+			startCarMovement(client, responseMessage.Station)
 		default:
 			fmt.Println("Requisição da resposta inválida.")
 			continue

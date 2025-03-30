@@ -8,7 +8,6 @@ import (
 	"net"
 	"os"
 	"slices"
-	"time"
 )
 
 func (s *Server) HandleRegisterCar(message types.Message) types.Message {
@@ -119,6 +118,7 @@ func (s *Server) HandleReserveStation(message types.Message) types.Message {
 	for _, carID := range station.CarList {
 		if carID == message.Car.CarID {
 			responseMessage.Status = types.Error
+			responseMessage.Car = message.Car
 			fmt.Printf("Erro: O carro com ID %d já está na fila da estação com ID %d.\n", message.Car.CarID, station.StationID)
 			return responseMessage
 		}
@@ -133,8 +133,6 @@ func (s *Server) HandleReserveStation(message types.Message) types.Message {
 		return responseMessage
 	}
 	message.Car.ReservedStation = station.StationID
-
-	go s.startCarMovement(message.Car, station)
 
 	responseMessage.Car = message.Car
 	err = s.saveCarToFile(message.Car)
@@ -221,6 +219,33 @@ func (s *Server) HandleGetRecommendedStation(message types.Message) types.Messag
 	return responseMessage
 }
 
+func (s *Server) HandleGetReservedStation(message types.Message) types.Message {
+	responseMessage := types.Message{Req: types.GetReservedStation}
+	car, err := s.getCarFromFile(message.Car.CarID)
+	if err != nil {
+		responseMessage.Status = types.Error
+		fmt.Printf("Erro ao obter o carro com ID %d: %v\n", message.Car.CarID, err)
+		return responseMessage
+	}
+	if car.ReservedStation == 0 {
+		responseMessage.Status = types.Error
+		fmt.Printf("Carro %d não possui uma estação reservada.\n", car.CarID)
+		return responseMessage
+	}
+	station, err := s.getStationFromFile(car.ReservedStation)
+	if err != nil {
+		responseMessage.Status = types.Error
+		fmt.Printf("Erro ao obter a estação reservada com ID %d: %v\n", car.ReservedStation, err)
+		return responseMessage
+	}
+
+	fmt.Printf("Retornando a estação %d para o carro %d", station.StationID, car.CarID)
+	responseMessage.Status = types.Success
+	responseMessage.Car = car
+	responseMessage.Station = station
+	return responseMessage
+}
+
 func (s *Server) HandleRechargeComplete(message types.Message) types.Message {
 	responseMessage := types.Message{Req: types.RechargeComplete, Status: types.Success}
 	car, stationID := message.Car, message.Car.ReservedStation
@@ -283,8 +308,7 @@ func (s *Server) HandleStartRecharge(message types.Message) types.Message {
 		return responseMessage
 	}
 
-	fmt.Printf("Recarga iniciada para o carro %d na estação %d. Tempo estimado: 10 segundos.\n", car.CarID, station.StationID)
-	time.Sleep(10 * time.Second)
+	fmt.Printf("Recarga iniciada para o carro %d na estação %d.\n", car.CarID, station.StationID)
 	//TODO o cliente ainda consegue enviar mensagens no terminal no periodo. elas são processadas em sequencia apos o tempo
 	responseMessage.Car = car
 	return responseMessage
@@ -294,6 +318,7 @@ func (s *Server) SendResponse(conn net.Conn, responseMessage types.Message) erro
 	if err != nil {
 		return fmt.Errorf("erro ao serializar resposta: %w", err)
 	}
+	fmt.Println("Enviando resposta:", string(responseBuf))
 
 	_, err = conn.Write(responseBuf)
 	if err != nil {
@@ -438,62 +463,15 @@ func (s *Server) getBestStation(carId int) (types.Station, error) {
 	return bestStation, nil
 }
 
-func (s *Server) startCarMovement(car types.Car, station types.Station) {
-	var speed = 0.5
-	ticker := time.NewTicker(1 * time.Second)
-	defer ticker.Stop()
-	fmt.Printf("Trajeto do carro %d: para a estação %d\n", car.CarID, station.StationID)
-	coordX := float64(car.CoordX)
-	coordY := float64(car.CoordY)
-	stationX := float64(station.CoordX)
-	stationY := float64(station.CoordY)
-
-	for {
-		select {
-		case <-ticker.C:
-			if coordX < stationX {
-				coordX += speed
-				if coordX > stationX {
-					coordX = stationX
-				}
-			} else if coordX > stationX {
-				coordX -= speed
-				if coordX < stationX {
-					coordX = stationX
-				}
-			} else if coordY < stationY {
-				coordY += speed
-				if coordY > stationY {
-					coordY = stationY
-				}
-			} else if coordY > stationY {
-				coordY -= speed
-				if coordY < stationY {
-					coordY = stationY
-				}
-			}
-			car.CoordX = int(coordX)
-			car.CoordY = int(coordY)
-			err := s.saveCarToFile(car)
-			if err != nil {
-				fmt.Printf("Erro ao salvar a posição do carro %d: %v\n", car.CarID, err)
-				return
-			}
-			if math.Abs(coordX-stationX) < 0.01 && math.Abs(coordY-stationY) < 0.01 {
-				fmt.Printf("Carro %d chegou à estação %d.\n", car.CarID, station.StationID)
-				return
-			}
-		}
-	}
-}
-
-func (s *Server) HandleBatterySync(message types.Message) types.Message {
+func (s *Server) HandleCarUpdate(message types.Message) types.Message {
 	s.sessionsMu.Lock()
 	defer s.sessionsMu.Unlock()
 
 	if car, exists := s.loggedCars[message.Car.CarID]; exists {
 		// Atualiza nível da bateria
 		car.BatteryLevel = message.Car.BatteryLevel
+		car.CoordX = message.Car.CoordX
+		car.CoordY = message.Car.CoordY
 		s.loggedCars[message.Car.CarID] = car
 
 		// Persiste no arquivo diretamente

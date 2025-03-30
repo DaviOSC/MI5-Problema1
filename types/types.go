@@ -1,5 +1,6 @@
 package types
 
+const CarSpeed = 2
 type Payment struct {
 	PaymentID int `json:"payment_id"`
 	From      int `json:"from"` // CarID que pagou a estação
@@ -37,14 +38,15 @@ const (
 	RegisterCar           Requests = iota // Registrar carro, passando ID, coordenadas e nível da bateria: carro -> server
 	RegisterStation                       // Registrar estação, passando ID e coordenadas: estação -> server
 	GetRecommendedStation                 // Obter a estação recomendada para um carro, passando suas coordenadas: carro -> server
+	GetReservedStation                  // Obter a estação reservada para um carro, passando seu ID: carro -> server
 	IsStationAvailable                    // Verificar se uma estação está disponível, passando seu ID: server -> estações
 	ReserveStation                        // Reservar uma estação, passando o ID do carro e o ID da estação: carro -> server
 	StartRecharge
-	RechargeComplete                      // Recarregar um carro, passando o ID do carro e o ID da estação: carro -> server
-	GeneratePayment                       // Gerar um pagamento, passando o ID do pagamento e o valor: server -> carro
-	PayRecharge                           // Pagar uma recarga, passando o ID do pagamento: carro -> server(Obs:fazer antes da reserva o pagamento)
+	RechargeComplete // Recarregar um carro, passando o ID do carro e o ID da estação: carro -> server
+	GeneratePayment  // Gerar um pagamento, passando o ID do pagamento e o valor: server -> carro
+	PayRecharge      // Pagar uma recarga, passando o ID do pagamento: carro -> server(Obs:fazer antes da reserva o pagamento)
 	UserLogin
-	BatterySync                           // Sincronizar a bateria do carro, passando o ID do carro e o nível da bateria: carro -> server
+	CarUpdate // Sincronizar o carro modficado no cliente pra o servidor, passando o ID do carro e o nível da bateria e posições : carro -> server
 	ListStations
 	PaymentHistory
 )
@@ -53,6 +55,7 @@ var RequestsNames = map[Requests]string{
 	RegisterCar:           "register_car",
 	RegisterStation:       "register_station",
 	GetRecommendedStation: "get_recommended_station",
+	GetReservedStation:    "get_reserved_station",
 	IsStationAvailable:    "is_station_available",
 	ReserveStation:        "reserve_station",
 	StartRecharge:         "start_recharge",
@@ -60,7 +63,7 @@ var RequestsNames = map[Requests]string{
 	GeneratePayment:       "generate_payment",
 	PayRecharge:           "pay_recharge",
 	UserLogin:             "user_login",
-	BatterySync:           "battery_sync",
+	CarUpdate:             "battery_sync",
 	ListStations:          "list_stations",
 	PaymentHistory:        "payment_history",
 }
@@ -90,7 +93,7 @@ func (r Requests) String() string {
 type Message struct {
 	Req         Requests       `json:"request,omitempty"`
 	Status      ResponseStatus `json:"status,omitempty"`
-	Err         error 	       `json:"err,omitempty"`
+	Err         error          `json:"err,omitempty"`
 	Car         Car            `json:"car,omitempty"`
 	Station     Station        `json:"station,omitempty"`
 	Payment     Payment        `json:"payment,omitempty"`

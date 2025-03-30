@@ -111,8 +111,11 @@ func (s *Server) readLoop(conn net.Conn) {
 		case types.GetRecommendedStation:
 			responseMessage = s.HandleGetRecommendedStation(message)
 
-		case types.BatterySync:
-			responseMessage = s.HandleBatterySync(message)
+		case types.GetReservedStation:
+			responseMessage = s.HandleGetReservedStation(message)
+
+		case types.CarUpdate:
+			responseMessage = s.HandleCarUpdate(message)
 		// case types.UserLogout:  // Novo caso
 		// 	responseMessage = s.HandleUserLogout(message)
 		// case types.PaymentHistory:

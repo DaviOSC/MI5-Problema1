@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"main/types"
 	"net"
+	"time"
+	"math"
 )
 
 // HandleRegisterCar lida com a requisição de registro de carro
@@ -36,6 +38,13 @@ func HandleGetRecommendedStation(car types.Car) (types.Message, error) {
 		Car: car,
 	}, nil
 }
+func HandleGetReservedStation(car types.Car) (types.Message, error) {
+	return types.Message{
+		Req: types.GetReservedStation,
+		Car: car,
+	}, nil
+}
+
 
 func HandleListStations() (types.Message, error) {
 	return types.Message{
@@ -170,6 +179,7 @@ Coordenadas: (x: %d, y: %d)`,
 		return responseMessage.Car, fmt.Errorf("erro ao recomendar estação")
 	}
 }
+
 func HandleReserveStationResponse(responseMessage types.Message) (types.Car, error) {
 	if responseMessage.Status == types.Success {
 		fmt.Println("Estação reservada com sucesso.")
@@ -188,9 +198,11 @@ func HandleRechargeCompleteResponse(responseMessage types.Message) (types.Car, e
 	}
 }
 func HandleStartRechargeResponse(client *Client, responseMessage types.Message) (types.Car, error) {
+	fmt.Println("Recarga iniciada com sucesso.")
 	if responseMessage.Status == types.Success {
-		fmt.Println("Recarga iniciada com sucesso.")
-
+		//Espera o tempo de recarga
+		fmt.Println("Esperando 10 segundos para simular a recarga...")
+		time.Sleep(10 * time.Second)
 		// Criar a mensagem de conclusão da recarga
 		message, err := HandleRechargeComplete(responseMessage.Car)
 		if err != nil {
@@ -246,6 +258,56 @@ Coordenadas: (x: %d, y: %d)`,
 	}
 }
 
+func startCarMovement(client *Client, station types.Station) {
+	ticker := time.NewTicker(1 * time.Second)
+	car := client.car
+	defer ticker.Stop()
+	fmt.Printf("Trajeto do carro %d: para a estação %d\n", car.CarID, station.StationID)
+	coordX := float64(car.CoordX)
+	coordY := float64(car.CoordY)
+	stationX := float64(station.CoordX)
+	stationY := float64(station.CoordY)
+
+	for {
+		select {
+		case <-ticker.C:
+			if coordX < stationX {
+				coordX += types.CarSpeed
+				if coordX > stationX {
+					coordX = stationX
+				}
+			} else if coordX > stationX {
+				coordX -= types.CarSpeed
+				if coordX < stationX {
+					coordX = stationX
+				}
+			} else if coordY < stationY {
+				coordY += types.CarSpeed
+				if coordY > stationY {
+					coordY = stationY
+				}
+			} else if coordY > stationY {
+				coordY -= types.CarSpeed
+				if coordY < stationY {
+					coordY = stationY
+				}
+			}
+			car.CoordX = int(coordX)
+			car.CoordY = int(coordY)
+
+			fmt.Printf("Carro %d está em (%d, %d)\n", car.CarID, car.CoordX, car.CoordY)
+
+
+			if math.Abs(coordX-stationX) < 0.01 && math.Abs(coordY-stationY) < 0.01 {
+				fmt.Printf("Carro %d chegou à estação %d.\n", car.CarID, station.StationID)
+				client.car = car
+				client.syncCarWithServer()
+				return
+			}
+		}
+	}
+}
+
 // Monitoramento da bateria
 func (c *Client) batteryMonitor() {
 	for {
@@ -264,25 +326,25 @@ func (c *Client) batteryMonitor() {
 			c.batteryMutex.Unlock()
 
 		case <-c.syncTicker.C:
-			c.syncBatteryWithServer()
+			c.syncCarWithServer()
 		}
 	}
 }
 
 // Sincroniza com servidor
-func (c *Client) syncBatteryWithServer() {
+func (c *Client) syncCarWithServer() {
 	c.batteryMutex.Lock()
 	defer c.batteryMutex.Unlock()
 
 	msg := types.Message{
-		Req: types.BatterySync,
+		Req: types.CarUpdate,
 		Car: c.car,
 	}
 
 	if err := c.SendMessage(msg); err != nil {
-		fmt.Println("Erro ao sincronizar bateria:", err)
+		fmt.Println("Erro ao sincronizar o Carro:", err)
 		return
 	}
 
-	fmt.Println("🔄 Sincronizando bateria com servidor...")
+	fmt.Println("🔄 Sincronizando o carro com servidor...")
 }
