@@ -3,15 +3,17 @@
     "station_id": 1,
     "coord_x": 2,
     "coord_y": 2,
-    "car_list": null,
-    "cars_waiting": 0,
+    "car_list": [
+      0
+    ],
+    "cars_waiting": 1,
     "in_use": 0
   },
   {
     "station_id": 10,
     "coord_x": 50,
     "coord_y": 100,
-    "car_list": null,
+    "car_list": [],
     "cars_waiting": 0,
     "in_use": 0
   },
@@ -37,6 +39,14 @@
     "station_id": 3,
     "coord_x": 4,
     "coord_y": 4,
+    "car_list": null,
+    "cars_waiting": 0,
+    "in_use": 0
+  },
+  {
+    "station_id": 0,
+    "coord_x": 0,
+    "coord_y": 0,
     "car_list": null,
     "cars_waiting": 0,
     "in_use": 0

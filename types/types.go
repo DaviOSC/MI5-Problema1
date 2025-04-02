@@ -98,7 +98,7 @@ func (r Requests) String() string {
 type Message struct {
 	Req         Requests       `json:"request,omitempty"`
 	Status      ResponseStatus `json:"status,omitempty"`
-	Err         error          `json:"err,omitempty"`
+	Err         string         `json:"err,omitempty"`
 	Car         Car            `json:"car,omitempty"`
 	Station     Station        `json:"station,omitempty"`
 	Payment     Payment        `json:"payment,omitempty"`

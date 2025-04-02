@@ -35,7 +35,7 @@ func NewCarClient() *CarClient {
 	}
 
 	// Iniciar monitoramento de bateria em goroutine separada
-	go c.batteryMonitor()
+	// go c.batteryMonitor()
 
 	return c
 }
@@ -170,42 +170,58 @@ func main() {
 				fmt.Println("Erro:", err)
 			}
 		case types.GetRecommendedStation:
-			client.car, err = HandleGetRecommendedStationResponse(responseMessage)
+			car, err := HandleGetRecommendedStationResponse(responseMessage)
 			if err != nil {
 				fmt.Println("Erro:", err)
+			} else {
+				client.car = car
 			}
 		case types.ReserveStation:
-			client.car, err = HandleReserveStationResponse(responseMessage)
+			car, err := HandleReserveStationResponse(responseMessage)
 			if err != nil {
 				fmt.Println("Erro:", err)
+			} else {
+				client.car = car
 			}
 		case types.RechargeComplete:
-			client.car, err = HandleRechargeCompleteResponse(responseMessage)
+			car, err := HandleRechargeCompleteResponse(responseMessage)
 			if err != nil {
 				fmt.Println("Erro:", err)
+			} else {
+				client.car = car
 			}
 		case types.StartRecharge:
-			client.car, err = HandleStartRechargeResponse(client, responseMessage)
+			car, err := HandleStartRechargeResponse(client, responseMessage)
 			if err != nil {
 				fmt.Println("Erro:", err)
+			} else {
+				client.car = car
 			}
 		case types.PayRecharge:
-			client.car, err = HandlePayRechargeResponse(responseMessage)
+			car, err := HandlePayRechargeResponse(responseMessage)
 			if err != nil {
 				fmt.Println("Erro:", err)
+			} else {
+				client.car = car
 			}
 		case types.ListActiveStations:
-			client.car, err = HandleListActiveStationsResponse(responseMessage)
+			car, err := HandleListActiveStationsResponse(responseMessage)
 			if err != nil {
 				fmt.Println("Erro:", err)
+			} else {
+				client.car = car
 			}
 		case types.PaymentHistory:
-			client.car, err = HandlePaymentHistoryResponse(responseMessage)
+			car, err := HandlePaymentHistoryResponse(responseMessage)
 			if err != nil {
 				fmt.Println("Erro:", err)
+			} else {
+				client.car = car
 			}
 		case types.GetReservedStation:
-			client.car = responseMessage.Car
+			if responseMessage.Status == types.Success {
+				client.car = responseMessage.Car
+			}
 			startCarMovement(client, responseMessage.Station)
 		default:
 			fmt.Println("Requisição da resposta inválida.")

@@ -50,17 +50,18 @@ func HandleListActiveStations() (types.Message, error) {
 		Req: types.ListActiveStations,
 	}, nil
 }
-func HandleListActiveStationsResponse(responseMessage types.Message) (types.Car, error)  {
-    if responseMessage.Status == types.Success {
-        fmt.Println("Estações conectadas:")
-        for _, station := range responseMessage.StationList {
-            fmt.Printf("ID: %d, Coordenadas: (%d, %d)\n", station.StationID, station.CoordX, station.CoordY)
-        }
-        return responseMessage.Car, nil
+func HandleListActiveStationsResponse(responseMessage types.Message) (types.Car, error) {
+	if responseMessage.Status == types.Success {
+		fmt.Println("Estações conectadas:")
+		for _, station := range responseMessage.StationList {
+			fmt.Printf("ID: %d, Coordenadas: (%d, %d)\n", station.StationID, station.CoordX, station.CoordY)
+		}
+		return responseMessage.Car, nil
 	} else {
 		return responseMessage.Car, fmt.Errorf("erro ao listar estações")
-    }
+	}
 }
+
 // HandleReserveStation lida com a requisição de reserva de estação
 func HandleReserveStation(car types.Car) (types.Message, error) {
 	return types.Message{
@@ -354,5 +355,5 @@ func (c *CarClient) syncCarWithServer() {
 		return
 	}
 
-	fmt.Println("🔄 Sincronizando o carro com servidor...")
+	// fmt.Println("🔄 Sincronizando o carro com servidor...")
 }

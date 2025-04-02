@@ -157,11 +157,10 @@ func (s *Server) HandleSelectStation(message types.Message, conn net.Conn) types
 	// Verificar se a estação já está conectada
 	if _, exists := s.connectedStations[stationID]; exists {
 		responseMessage.Status = types.Error
-		responseMessage.Err = fmt.Errorf("estação com ID %d já está conectada", stationID)
+		responseMessage.Err = fmt.Sprintf("estação com ID %d já está conectada", stationID)
 		fmt.Printf("Erro: Estação com ID %d já está conectada.\n", stationID)
 		return responseMessage
 	}
-
 	// Adicionar a estação ao mapa de estações conectadas
 	//message.Station.Conn = conn.RemoteAddr().String() // Salvar o IP da conexão
 	s.connectedStations[stationID] = message.Station
@@ -202,7 +201,7 @@ func (s *Server) HandlePayRecharge(message types.Message) types.Message {
 	}
 	if message.Car.ReservedStation == 0 {
 		responseMessage.Status = types.Error
-		responseMessage.Err = fmt.Errorf("reserve a estação antes de pagar")
+		responseMessage.Err = "reserve a estação antes de pagar"
 		return responseMessage
 	}
 

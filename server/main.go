@@ -88,7 +88,7 @@ func (s *Server) HandleRequest(message types.Message, conn net.Conn) types.Messa
 	case types.SelectStation:
 		return s.HandleSelectStation(message, conn)
 	default:
-		return types.Message{Status: types.Error, Err: fmt.Errorf("requisição inválida.")}
+		return types.Message{Status: types.Error, Err: "requisição inválida."}
 	}
 }
 
