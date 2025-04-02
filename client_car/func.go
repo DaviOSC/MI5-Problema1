@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"main/types"
+	"math"
 	"net"
 	"time"
-	"math"
 )
 
 // HandleRegisterCar lida com a requisição de registro de carro
@@ -45,11 +45,21 @@ func HandleGetReservedStation(car types.Car) (types.Message, error) {
 	}, nil
 }
 
-
-func HandleListStations() (types.Message, error) {
+func HandleListActiveStations() (types.Message, error) {
 	return types.Message{
-		Req: types.ListStations,
+		Req: types.ListActiveStations,
 	}, nil
+}
+func HandleListActiveStationsResponse(responseMessage types.Message) (types.Car, error) {
+	if responseMessage.Status == types.Success {
+		fmt.Println("Estações conectadas:")
+		for _, station := range responseMessage.StationList {
+			fmt.Printf("ID: %d, Coordenadas: (%d, %d)\n", station.StationID, station.CoordX, station.CoordY)
+		}
+		return responseMessage.Car, nil
+	} else {
+		return responseMessage.Car, fmt.Errorf("erro ao listar estações")
+	}
 }
 
 // HandleReserveStation lida com a requisição de reserva de estação
@@ -197,7 +207,7 @@ func HandleRechargeCompleteResponse(responseMessage types.Message) (types.Car, e
 		return responseMessage.Car, fmt.Errorf("erro ao completar recarga")
 	}
 }
-func HandleStartRechargeResponse(client *Client, responseMessage types.Message) (types.Car, error) {
+func HandleStartRechargeResponse(client *CarClient, responseMessage types.Message) (types.Car, error) {
 	fmt.Println("Recarga iniciada com sucesso.")
 	if responseMessage.Status == types.Success {
 		//Espera o tempo de recarga
@@ -258,7 +268,7 @@ Coordenadas: (x: %d, y: %d)`,
 	}
 }
 
-func startCarMovement(client *Client, station types.Station) {
+func startCarMovement(client *CarClient, station types.Station) {
 	ticker := time.NewTicker(1 * time.Second)
 	car := client.car
 	defer ticker.Stop()
@@ -297,7 +307,6 @@ func startCarMovement(client *Client, station types.Station) {
 
 			fmt.Printf("Carro %d está em (%d, %d)\n", car.CarID, car.CoordX, car.CoordY)
 
-
 			if math.Abs(coordX-stationX) < 0.01 && math.Abs(coordY-stationY) < 0.01 {
 				fmt.Printf("Carro %d chegou à estação %d.\n", car.CarID, station.StationID)
 				client.car = car
@@ -309,7 +318,7 @@ func startCarMovement(client *Client, station types.Station) {
 }
 
 // Monitoramento da bateria
-func (c *Client) batteryMonitor() {
+func (c *CarClient) batteryMonitor() {
 	for {
 		select {
 		case <-c.batteryTicker.C:
@@ -332,7 +341,7 @@ func (c *Client) batteryMonitor() {
 }
 
 // Sincroniza com servidor
-func (c *Client) syncCarWithServer() {
+func (c *CarClient) syncCarWithServer() {
 	c.batteryMutex.Lock()
 	defer c.batteryMutex.Unlock()
 
@@ -346,5 +355,5 @@ func (c *Client) syncCarWithServer() {
 		return
 	}
 
-	fmt.Println("🔄 Sincronizando o carro com servidor...")
+	// fmt.Println("🔄 Sincronizando o carro com servidor...")
 }

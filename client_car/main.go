@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-type Client struct {
+type CarClient struct {
 	conn          net.Conn
 	car           types.Car
 	batteryTicker *time.Ticker
@@ -18,7 +18,7 @@ type Client struct {
 	batteryMutex  sync.Mutex
 }
 
-func NewClient() *Client {
+func NewCarClient() *CarClient {
 	// Conectar ao servidor
 	conn, err := net.Dial("tcp", "localhost:8080")
 	if err != nil {
@@ -26,7 +26,7 @@ func NewClient() *Client {
 	}
 
 	// Criar client com os novos campos
-	c := &Client{
+	c := &CarClient{
 		conn:          conn,
 		car:           types.Car{},
 		batteryTicker: time.NewTicker(5 * time.Second),  // Decremento a cada 5s
@@ -35,12 +35,12 @@ func NewClient() *Client {
 	}
 
 	// Iniciar monitoramento de bateria em goroutine separada
-	go c.batteryMonitor()
+	// go c.batteryMonitor()
 
 	return c
 }
 
-func (c *Client) SendMessage(message types.Message) error {
+func (c *CarClient) SendMessage(message types.Message) error {
 	// Enviar a mensagem ao servidor
 	buf, err := json.Marshal(message)
 	if err != nil {
@@ -57,7 +57,7 @@ func (c *Client) SendMessage(message types.Message) error {
 	return err
 }
 
-func (c *Client) ReadResponse() (types.Message, error) {
+func (c *CarClient) ReadResponse() (types.Message, error) {
 	// Receber a resposta do servidor
 	var responseMessage types.Message
 	decoder := json.NewDecoder(c.conn)
@@ -72,7 +72,7 @@ func (c *Client) ReadResponse() (types.Message, error) {
 
 func main() {
 
-	client := NewClient()
+	client := NewCarClient()
 	defer client.conn.Close()
 
 	for {
@@ -136,7 +136,7 @@ func main() {
 				log.Fatal("Erro ao registrar o carro:", err)
 			}
 		case "7":
-			message, err = HandleListStations()
+			message, err = HandleListActiveStations()
 			if err != nil {
 				log.Fatal("Erro ao listar as estações:", err)
 			}
@@ -170,42 +170,58 @@ func main() {
 				fmt.Println("Erro:", err)
 			}
 		case types.GetRecommendedStation:
-			client.car, err = HandleGetRecommendedStationResponse(responseMessage)
+			car, err := HandleGetRecommendedStationResponse(responseMessage)
 			if err != nil {
 				fmt.Println("Erro:", err)
+			} else {
+				client.car = car
 			}
 		case types.ReserveStation:
-			client.car, err = HandleReserveStationResponse(responseMessage)
+			car, err := HandleReserveStationResponse(responseMessage)
 			if err != nil {
 				fmt.Println("Erro:", err)
+			} else {
+				client.car = car
 			}
 		case types.RechargeComplete:
-			client.car, err = HandleRechargeCompleteResponse(responseMessage)
+			car, err := HandleRechargeCompleteResponse(responseMessage)
 			if err != nil {
 				fmt.Println("Erro:", err)
+			} else {
+				client.car = car
 			}
 		case types.StartRecharge:
-			client.car, err = HandleStartRechargeResponse(client, responseMessage)
+			car, err := HandleStartRechargeResponse(client, responseMessage)
 			if err != nil {
 				fmt.Println("Erro:", err)
+			} else {
+				client.car = car
 			}
 		case types.PayRecharge:
-			client.car, err = HandlePayRechargeResponse(responseMessage)
+			car, err := HandlePayRechargeResponse(responseMessage)
 			if err != nil {
 				fmt.Println("Erro:", err)
+			} else {
+				client.car = car
 			}
-		case types.ListStations:
-			client.car, err = HandleListStationsResponse(responseMessage)
+		case types.ListActiveStations:
+			car, err := HandleListActiveStationsResponse(responseMessage)
 			if err != nil {
 				fmt.Println("Erro:", err)
+			} else {
+				client.car = car
 			}
 		case types.PaymentHistory:
-			client.car, err = HandlePaymentHistoryResponse(responseMessage)
+			car, err := HandlePaymentHistoryResponse(responseMessage)
 			if err != nil {
 				fmt.Println("Erro:", err)
+			} else {
+				client.car = car
 			}
 		case types.GetReservedStation:
-			client.car = responseMessage.Car
+			if responseMessage.Status == types.Success {
+				client.car = responseMessage.Car
+			}
 			startCarMovement(client, responseMessage.Station)
 		default:
 			fmt.Println("Requisição da resposta inválida.")
