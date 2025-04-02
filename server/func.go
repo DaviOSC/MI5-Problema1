@@ -146,48 +146,49 @@ func (s *Server) HandleReserveStation(message types.Message) types.Message {
 }
 
 func (s *Server) HandleSelectStation(message types.Message, conn net.Conn) types.Message {
-    responseMessage := types.Message{Req: types.SelectStation}
+	responseMessage := types.Message{Req: types.SelectStation}
+	fmt.Printf("Requisição SelectStation para a estação de id %d\n", message.Station.StationID)
+	// Bloquear o acesso ao mapa de estações conectadas
+	s.sessionsMu.Lock()
+	defer s.sessionsMu.Unlock()
 
-    // Bloquear o acesso ao mapa de estações conectadas
-    s.sessionsMu.Lock()
-    defer s.sessionsMu.Unlock()
+	stationID := message.Station.StationID
 
-    stationID := message.Station.StationID
+	// Verificar se a estação já está conectada
+	if _, exists := s.connectedStations[stationID]; exists {
+		responseMessage.Status = types.Error
+		responseMessage.Err = fmt.Errorf("estação com ID %d já está conectada", stationID)
+		fmt.Printf("Erro: Estação com ID %d já está conectada.\n", stationID)
+		return responseMessage
+	}
 
-    // Verificar se a estação já está conectada
-    if _, exists := s.connectedStations[stationID]; exists {
-        responseMessage.Status = types.Error
-        responseMessage.Err = fmt.Errorf("estação com ID %d já está conectada", stationID)
-        fmt.Printf("Erro: Estação com ID %d já está conectada.\n", stationID)
-        return responseMessage
-    }
+	// Adicionar a estação ao mapa de estações conectadas
+	//message.Station.Conn = conn.RemoteAddr().String() // Salvar o IP da conexão
+	s.connectedStations[stationID] = message.Station
 
-    // Adicionar a estação ao mapa de estações conectadas
-    //message.Station.Conn = conn.RemoteAddr().String() // Salvar o IP da conexão
-    s.connectedStations[stationID] = message.Station
-
-    responseMessage.Status = types.Success
-    responseMessage.Station = message.Station
-    fmt.Printf("Estação %d adicionada com sucesso. IP: %s\n", stationID, conn.RemoteAddr().String())
-    return responseMessage
+	responseMessage.Status = types.Success
+	responseMessage.Station = message.Station
+	fmt.Printf("Estação com ID %d conectada com sucesso. IP: %s\n", responseMessage.Station.StationID, conn.RemoteAddr().String())
+	fmt.Printf("Estação %d adicionada com sucesso. IP: %s\n", stationID, conn.RemoteAddr().String())
+	return responseMessage
 }
 func (s *Server) HandleListActiveStations(message types.Message) types.Message {
-    responseMessage := types.Message{Req: types.ListActiveStations, Status: types.Success}
+	responseMessage := types.Message{Req: types.ListActiveStations, Status: types.Success}
 
-    // Bloquear o acesso ao mapa de estações conectadas para evitar condições de corrida
-    s.sessionsMu.Lock()
-    defer s.sessionsMu.Unlock()
+	// Bloquear o acesso ao mapa de estações conectadas para evitar condições de corrida
+	s.sessionsMu.Lock()
+	defer s.sessionsMu.Unlock()
 
-    // Criar uma lista de estações conectadas
-    var activeStations []types.Station
-    for _, station := range s.connectedStations {
-        activeStations = append(activeStations, station)
-    }
+	// Criar uma lista de estações conectadas
+	var activeStations []types.Station
+	for _, station := range s.connectedStations {
+		activeStations = append(activeStations, station)
+	}
 
-    // Adicionar a lista de estações conectadas à resposta
-    responseMessage.StationList = activeStations
-    fmt.Printf("Estações ativas listadas com sucesso: %d estações conectadas.\n", len(activeStations))
-    return responseMessage
+	// Adicionar a lista de estações conectadas à resposta
+	responseMessage.StationList = activeStations
+	fmt.Printf("Estações ativas listadas com sucesso: %d estações conectadas.\n", len(activeStations))
+	return responseMessage
 }
 
 func (s *Server) HandlePayRecharge(message types.Message) types.Message {

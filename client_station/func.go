@@ -47,16 +47,25 @@ func RegisterStationResponse(responseMessage types.Message) (types.Station, erro
 
 func ChooseStation(station types.Station) (types.Message, error) {
 	return types.Message{
-		Req: types.ListStations,
-        Station: station,
+		Req:     types.ListStations,
+		Station: station,
 	}, nil
 }
 
 func SelectStation(station types.Station) (types.Message, error) {
-    return types.Message{
-        Req:     types.SelectStation,
-        Station: station,
-    }, nil
+	return types.Message{
+		Req:     types.SelectStation,
+		Station: station,
+	}, nil
+}
+func SelectStationResponse(responseMessage types.Message) (types.Station, error) {
+	if responseMessage.Status == types.Success {
+		fmt.Printf("Estação adicionada com sucesso: ID %d, Coordenadas: (%d, %d)\n",
+			responseMessage.Station.StationID, responseMessage.Station.CoordX, responseMessage.Station.CoordY)
+		return responseMessage.Station, nil
+	} else {
+		return types.Station{}, fmt.Errorf("erro ao adicionar estação: %v", responseMessage.Err)
+	}
 }
 
 func ChooseStationResponse(responseMessage types.Message) (types.Station, error) {

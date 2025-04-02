@@ -69,11 +69,76 @@ func main() {
 					fmt.Println("Erro:", err)
 					continue
 				}
+				err = client.SendMessage(message)
+				if err != nil {
+					fmt.Println("Erro ao enviar mensagem:", err)
+					continue
+				}
+
+				// Receber a resposta do servidor
+				responseMessage, err := client.ReadResponse()
+				if err != nil {
+					fmt.Println("Erro ao receber resposta:", err)
+					continue
+				}
+				_, err = RegisterStationResponse(responseMessage)
+				if err != nil {
+					fmt.Println("Erro:", err)
+				}
 			case "2":
+				// Criar a mensagem para listar as estações disponíveis
 				message, err = ChooseStation(client.station)
 				if err != nil {
 					fmt.Println("Erro ao criar mensagem:", err)
 					continue
+				}
+			
+				// Enviar a mensagem para listar estações
+				err = client.SendMessage(message)
+				if err != nil {
+					fmt.Println("Erro ao enviar mensagem:", err)
+					continue
+				}
+			
+				// Receber a resposta do servidor
+				responseMessage, err := client.ReadResponse()
+				if err != nil {
+					fmt.Println("Erro ao receber resposta:", err)
+					continue
+				}
+			
+				// Processar a resposta e permitir que o usuário escolha uma estação
+				station, err := ChooseStationResponse(responseMessage)
+				if err != nil {
+					fmt.Println("Erro:", err)
+					continue
+				}
+			
+				// Criar a mensagem para enviar a estação escolhida ao servidor
+				message, err = SelectStation(station)
+				if err != nil {
+					fmt.Println("Erro ao criar mensagem de seleção:", err)
+					continue
+				}
+
+				err = client.SendMessage(message)
+				if err != nil {
+					fmt.Println("Erro ao enviar mensagem:", err)
+					continue
+				}
+				responseMessage, err = client.ReadResponse()
+				if err != nil {
+					fmt.Println("Erro ao receber resposta:", err)
+					continue
+				}
+			
+				// Receber a resposta do servidor
+				station, err = SelectStationResponse(responseMessage)
+				if err != nil {
+					fmt.Println("Erro:", err)
+				} else {
+					client.station = station
+					stationChosen = true
 				}
 			case "3":
 				fmt.Println("Saindo...")
@@ -89,41 +154,6 @@ func main() {
 			} else {
 				fmt.Println("Opção inválida.")
 				continue
-			}
-		}
-
-		// Enviar a mensagem ao servidor (se aplicável)
-		if message.Req != 0 {
-			err = client.SendMessage(message)
-			if err != nil {
-				fmt.Println("Erro ao enviar mensagem:", err)
-				continue
-			}
-
-			// Receber a resposta do servidor
-			responseMessage, err := client.ReadResponse()
-			if err != nil {
-				fmt.Println("Erro ao receber resposta:", err)
-				continue
-			}
-
-			// Processar a resposta
-			switch responseMessage.Req {
-			case types.RegisterStation:
-				_, err := RegisterStationResponse(responseMessage)
-				if err != nil {
-					fmt.Println("Erro:", err)
-				}
-			case types.ListStations:
-				station, err := ChooseStationResponse(responseMessage)
-				if err != nil {
-					fmt.Println("Erro:", err)
-				} else {
-					client.station = station
-					stationChosen = true
-				}
-			default:
-				fmt.Println("Requisição da resposta inválida.")
 			}
 		}
 	}

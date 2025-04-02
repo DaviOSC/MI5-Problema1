@@ -59,52 +59,7 @@ func (s *Server) acceptLoop() {
 	}
 }
 
-func (s *Server) readLoop(conn net.Conn) {
-	responseMessage := types.Message{}
-
-	for {
-		decoder := json.NewDecoder(conn)
-		message := types.Message{}
-		var err = decoder.Decode(&message)
-		if err != nil {
-			// Verificar se o erro é EOF (cliente desconectou)
-			if err == io.EOF {
-				fmt.Println("Cliente desconectado:", conn.RemoteAddr())
-				break
-			}
-			// Outros erros são exibidos
-			fmt.Println("Erro ao decodificar JSON:", err)
-			break
-		}
-
-		// Identificar o tipo de cliente com base na requisição
-		switch message.Req {
-		case types.RegisterCar, types.UserLogin, types.CarUpdate, types.GetRecommendedStation,
-			types.GetReservedStation, types.ReserveStation, types.StartRecharge,
-			types.RechargeComplete, types.PayRecharge, types.ListActiveStations:
-			fmt.Println("Requisição recebida de um cliente_car.")
-			responseMessage = s.handleCarRequest(message)
-
-		case types.RegisterStation, types.ListStations:
-			fmt.Println("Requisição recebida de um cliente_station.")
-			responseMessage = s.handleStationRequest(message, conn)
-
-		default:
-			responseMessage.Status = types.Error
-			fmt.Println("Requisição inválida.")
-		}
-
-		// Enviar a resposta ao cliente
-		err = s.SendResponse(conn, responseMessage)
-		if err != nil {
-			fmt.Println("Erro ao enviar resposta:", err)
-			break
-		}
-	}
-	fmt.Print(responseMessage)
-	defer s.CloseConnection(responseMessage)
-}
-func (s *Server) handleCarRequest(message types.Message) types.Message {
+func (s *Server) HandleRequest(message types.Message, conn net.Conn) types.Message {
 	switch message.Req {
 	case types.RegisterCar:
 		return s.HandleRegisterCar(message)
@@ -126,21 +81,44 @@ func (s *Server) handleCarRequest(message types.Message) types.Message {
 		return s.HandlePayRecharge(message)
 	case types.ListActiveStations:
 		return s.HandleListActiveStations(message)
-	default:
-		return types.Message{Status: types.Error, Err: fmt.Errorf("requisição inválida para cliente_car")}
-	}
-}
-func (s *Server) handleStationRequest(message types.Message, conn net.Conn) types.Message {
-	switch message.Req {
 	case types.RegisterStation:
 		return s.HandleRegisterStation(message)
 	case types.ListStations:
 		return s.HandleListStations(message)
-	case types.SelectStation: // Nova requisição
+	case types.SelectStation:
 		return s.HandleSelectStation(message, conn)
 	default:
-		return types.Message{Status: types.Error, Err: fmt.Errorf("requisição inválida para cliente_station")}
+		return types.Message{Status: types.Error, Err: fmt.Errorf("requisição inválida.")}
 	}
+}
+
+func (s *Server) readLoop(conn net.Conn) {
+	responseMessage := types.Message{}
+
+	for {
+		decoder := json.NewDecoder(conn)
+		message := types.Message{}
+		var err = decoder.Decode(&message)
+		if err != nil {
+			// Verificar se o erro é EOF (cliente desconectou)
+			if err == io.EOF {
+				fmt.Println("Cliente desconectado:", conn.RemoteAddr())
+				break
+			}
+			// Outros erros são exibidos
+			fmt.Println("Erro ao decodificar JSON:", err)
+			break
+		}
+		responseMessage = s.HandleRequest(message, conn)
+
+		// Enviar a resposta ao cliente
+		err = s.SendResponse(conn, responseMessage)
+		if err != nil {
+			fmt.Println("Erro ao enviar resposta:", err)
+			break
+		}
+	}
+	defer s.CloseConnection(responseMessage)
 }
 func main() {
 	server := NewServer(":8080")
