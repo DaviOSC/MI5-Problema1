@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-type Client struct {
+type CarClient struct {
 	conn          net.Conn
 	car           types.Car
 	batteryTicker *time.Ticker
@@ -18,7 +18,7 @@ type Client struct {
 	batteryMutex  sync.Mutex
 }
 
-func NewClient() *Client {
+func NewCarClient() *CarClient {
 	// Conectar ao servidor
 	conn, err := net.Dial("tcp", "localhost:8080")
 	if err != nil {
@@ -26,7 +26,7 @@ func NewClient() *Client {
 	}
 
 	// Criar client com os novos campos
-	c := &Client{
+	c := &CarClient{
 		conn:          conn,
 		car:           types.Car{},
 		batteryTicker: time.NewTicker(5 * time.Second),  // Decremento a cada 5s
@@ -40,7 +40,7 @@ func NewClient() *Client {
 	return c
 }
 
-func (c *Client) SendMessage(message types.Message) error {
+func (c *CarClient) SendMessage(message types.Message) error {
 	// Enviar a mensagem ao servidor
 	buf, err := json.Marshal(message)
 	if err != nil {
@@ -57,7 +57,7 @@ func (c *Client) SendMessage(message types.Message) error {
 	return err
 }
 
-func (c *Client) ReadResponse() (types.Message, error) {
+func (c *CarClient) ReadResponse() (types.Message, error) {
 	// Receber a resposta do servidor
 	var responseMessage types.Message
 	decoder := json.NewDecoder(c.conn)
@@ -72,7 +72,7 @@ func (c *Client) ReadResponse() (types.Message, error) {
 
 func main() {
 
-	client := NewClient()
+	client := NewCarClient()
 	defer client.conn.Close()
 
 	for {
@@ -136,7 +136,7 @@ func main() {
 				log.Fatal("Erro ao registrar o carro:", err)
 			}
 		case "7":
-			message, err = HandleListStations()
+			message, err = HandleListActiveStations()
 			if err != nil {
 				log.Fatal("Erro ao listar as estações:", err)
 			}
@@ -194,8 +194,8 @@ func main() {
 			if err != nil {
 				fmt.Println("Erro:", err)
 			}
-		case types.ListStations:
-			client.car, err = HandleListStationsResponse(responseMessage)
+		case types.ListActiveStations:
+			client.car, err = HandleListActiveStationsResponse(responseMessage)
 			if err != nil {
 				fmt.Println("Erro:", err)
 			}

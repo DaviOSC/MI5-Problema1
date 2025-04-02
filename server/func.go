@@ -82,11 +82,11 @@ func (s *Server) HandleListStations(message types.Message) types.Message {
 
 	if err != nil {
 		responseMessage.Status = types.Error
-		fmt.Println("Erro ao listar estações")
+		fmt.Println("Erro ao listar estações:", err)
 	} else {
 		responseMessage.Status = types.Success
-		fmt.Println("Estações listadas com sucesso")
 		responseMessage.StationList = stations
+		fmt.Println("Estações listadas com sucesso.")
 	}
 
 	return responseMessage
@@ -143,6 +143,51 @@ func (s *Server) HandleReserveStation(message types.Message) types.Message {
 	}
 
 	return responseMessage
+}
+
+func (s *Server) HandleSelectStation(message types.Message, conn net.Conn) types.Message {
+    responseMessage := types.Message{Req: types.SelectStation}
+
+    // Bloquear o acesso ao mapa de estações conectadas
+    s.sessionsMu.Lock()
+    defer s.sessionsMu.Unlock()
+
+    stationID := message.Station.StationID
+
+    // Verificar se a estação já está conectada
+    if _, exists := s.connectedStations[stationID]; exists {
+        responseMessage.Status = types.Error
+        responseMessage.Err = fmt.Errorf("estação com ID %d já está conectada", stationID)
+        fmt.Printf("Erro: Estação com ID %d já está conectada.\n", stationID)
+        return responseMessage
+    }
+
+    // Adicionar a estação ao mapa de estações conectadas
+    //message.Station.Conn = conn.RemoteAddr().String() // Salvar o IP da conexão
+    s.connectedStations[stationID] = message.Station
+
+    responseMessage.Status = types.Success
+    responseMessage.Station = message.Station
+    fmt.Printf("Estação %d adicionada com sucesso. IP: %s\n", stationID, conn.RemoteAddr().String())
+    return responseMessage
+}
+func (s *Server) HandleListActiveStations(message types.Message) types.Message {
+    responseMessage := types.Message{Req: types.ListActiveStations, Status: types.Success}
+
+    // Bloquear o acesso ao mapa de estações conectadas para evitar condições de corrida
+    s.sessionsMu.Lock()
+    defer s.sessionsMu.Unlock()
+
+    // Criar uma lista de estações conectadas
+    var activeStations []types.Station
+    for _, station := range s.connectedStations {
+        activeStations = append(activeStations, station)
+    }
+
+    // Adicionar a lista de estações conectadas à resposta
+    responseMessage.StationList = activeStations
+    fmt.Printf("Estações ativas listadas com sucesso: %d estações conectadas.\n", len(activeStations))
+    return responseMessage
 }
 
 func (s *Server) HandlePayRecharge(message types.Message) types.Message {
@@ -318,7 +363,6 @@ func (s *Server) SendResponse(conn net.Conn, responseMessage types.Message) erro
 	if err != nil {
 		return fmt.Errorf("erro ao serializar resposta: %w", err)
 	}
-	fmt.Println("Enviando resposta:", string(responseBuf))
 
 	_, err = conn.Write(responseBuf)
 	if err != nil {
@@ -486,24 +530,44 @@ func (s *Server) HandleCarUpdate(message types.Message) types.Message {
 	return types.Message{Status: types.Success}
 }
 
-func (s *Server) CloseConnection(car types.Car) {
-	reservedStationID := car.ReservedStation
-	fmt.Printf("Carro %d desconectado da estação %d\n", car.CarID, reservedStationID)
-	if reservedStationID != 0 {
-		reservedStation, err := s.getStationFromFile(reservedStationID)
+func (s *Server) CloseConnection(message types.Message) {
+	fmt.Printf("Carro desconectado: ID %d\n", message.Car.CarID)
+	if message.Car.CarID != 0 {
+		reservedStationID := message.Car.ReservedStation
+		fmt.Printf("Carro %d desconectado da estação %d\n", message.Car.CarID, reservedStationID)
+		if reservedStationID != 0 {
+			reservedStation, err := s.getStationFromFile(reservedStationID)
+			if err != nil {
+				fmt.Println("Erro em CloseConnection (Carro):", err)
+				return
+			}
+
+			reservedStation.CarsWaiting -= 1
+			index := slices.Index(reservedStation.CarList, message.Car.CarID)
+			if index >= 0 {
+				reservedStation.CarList = slices.Delete(reservedStation.CarList, index, index+1)
+			}
+			if reservedStation.InUseBy == message.Car.CarID {
+				reservedStation.InUseBy = 0
+			}
+			message.Car.RecomendedStation = 0
+			message.Car.ReservedStation = 0
+			s.saveCarToFile(message.Car)
+			s.saveStationToFile(reservedStation)
+		}
+	} else if message.Station.StationID != 0 {
+		fmt.Printf("Estação %d desconectada\n", message.Station.StationID)
+
+		s.sessionsMu.Lock()
+		delete(s.connectedStations, message.Station.StationID)
+		s.sessionsMu.Unlock()
+
+		err := s.saveStationToFile(message.Station)
 		if err != nil {
-			fmt.Println("Erro em CloseConnecton: ", err)
+			fmt.Println("Erro em CloseConnection (Estação):", err)
 		}
 
-		reservedStation.CarsWaiting -= 1
-		index := slices.Index(reservedStation.CarList, car.CarID)
-		reservedStation.CarList = slices.Delete(reservedStation.CarList, index, index+1)
-		if reservedStation.InUseBy == car.CarID {
-			reservedStation.InUseBy = 0
-		}
-		car.RecomendedStation = 0
-		car.ReservedStation = 0
-		s.saveCarToFile(car)
-		s.saveStationToFile(reservedStation)
+	} else {
+		fmt.Println("Entidade desconhecida ao tentar fechar conexão.")
 	}
 }

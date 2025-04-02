@@ -1,6 +1,7 @@
 package types
 
 const CarSpeed = 2
+
 type Payment struct {
 	PaymentID int `json:"payment_id"`
 	From      int `json:"from"` // CarID que pagou a estação
@@ -38,7 +39,7 @@ const (
 	RegisterCar           Requests = iota // Registrar carro, passando ID, coordenadas e nível da bateria: carro -> server
 	RegisterStation                       // Registrar estação, passando ID e coordenadas: estação -> server
 	GetRecommendedStation                 // Obter a estação recomendada para um carro, passando suas coordenadas: carro -> server
-	GetReservedStation                  // Obter a estação reservada para um carro, passando seu ID: carro -> server
+	GetReservedStation                    // Obter a estação reservada para um carro, passando seu ID: carro -> server
 	IsStationAvailable                    // Verificar se uma estação está disponível, passando seu ID: server -> estações
 	ReserveStation                        // Reservar uma estação, passando o ID do carro e o ID da estação: carro -> server
 	StartRecharge
@@ -48,6 +49,8 @@ const (
 	UserLogin
 	CarUpdate // Sincronizar o carro modficado no cliente pra o servidor, passando o ID do carro e o nível da bateria e posições : carro -> server
 	ListStations
+	ListActiveStations
+	SelectStation // Selecionar uma estação, passando o ID do carro e o ID da estação: carro -> server
 	PaymentHistory
 )
 
@@ -65,6 +68,8 @@ var RequestsNames = map[Requests]string{
 	UserLogin:             "user_login",
 	CarUpdate:             "battery_sync",
 	ListStations:          "list_stations",
+	ListActiveStations:    "list_active_stations",
+	SelectStation:         "select_station",
 	PaymentHistory:        "payment_history",
 }
 
