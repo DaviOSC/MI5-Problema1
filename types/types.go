@@ -33,6 +33,18 @@ type Station struct {
 	InUseBy     int   `json:"in_use"` // CarID
 }
 
+type ClientType int // Tipo para identificar o tipo do cliente
+
+const (
+	CarClientType     ClientType = iota // Cliente carro
+	StationClientType                   // Cliente posto
+)
+
+var ClientTypeNames = map[ClientType]string{
+	CarClientType:     "car_client_type",
+	StationClientType: "station_client_type",
+}
+
 type Requests int
 
 const (
@@ -93,6 +105,10 @@ func (r ResponseStatus) String() string {
 
 func (r Requests) String() string {
 	return RequestsNames[r]
+}
+
+func (c ClientType) String() string {
+	return ClientTypeNames[c]
 }
 
 type Message struct {

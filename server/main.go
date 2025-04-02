@@ -14,8 +14,8 @@ type Server struct {
 	address           string
 	listener          net.Listener
 	quitch            chan struct{}
-	loggedCars        map[int]types.Car     // Novo: mapa de carros logados
-	connectedStations map[int]types.Station // Mapa de estações conectadas (StationID -> Conexão)
+	loggedCars        map[int]net.Conn // Novo: mapa de carros logados
+	connectedStations map[int]net.Conn // Mapa de estações conectadas (StationID -> Conexão)
 
 	sessionsMu sync.Mutex
 }
@@ -24,8 +24,8 @@ func NewServer(address string) *Server {
 	return &Server{
 		address:           address,
 		quitch:            make(chan struct{}),
-		loggedCars:        make(map[int]types.Car),
-		connectedStations: make(map[int]types.Station),
+		loggedCars:        make(map[int]net.Conn),
+		connectedStations: make(map[int]net.Conn),
 	}
 }
 
@@ -64,7 +64,7 @@ func (s *Server) HandleRequest(message types.Message, conn net.Conn) types.Messa
 	case types.RegisterCar:
 		return s.HandleRegisterCar(message)
 	case types.UserLogin:
-		return s.HandleUserLogin(message)
+		return s.HandleUserLogin(message, conn)
 	case types.CarUpdate:
 		return s.HandleCarUpdate(message)
 	case types.GetRecommendedStation:

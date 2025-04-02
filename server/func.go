@@ -42,7 +42,7 @@ func (s *Server) HandleRegisterStation(message types.Message) types.Message {
 	return responseMessage
 }
 
-func (s *Server) HandleUserLogin(message types.Message) types.Message {
+func (s *Server) HandleUserLogin(message types.Message, conn net.Conn) types.Message {
 	loginData := message.Car
 	responseMessage := types.Message{Req: types.UserLogin}
 
@@ -61,10 +61,10 @@ func (s *Server) HandleUserLogin(message types.Message) types.Message {
 			responseMessage.Car = car
 
 			s.sessionsMu.Lock()
-			s.loggedCars[car.CarID] = car
+			s.loggedCars[car.CarID] = conn
 			s.sessionsMu.Unlock()
 
-			fmt.Println("Login bem-sucedido")
+			fmt.Println("Login bem-sucedido.")
 			break
 		}
 	}
@@ -163,7 +163,7 @@ func (s *Server) HandleSelectStation(message types.Message, conn net.Conn) types
 	}
 	// Adicionar a estação ao mapa de estações conectadas
 	//message.Station.Conn = conn.RemoteAddr().String() // Salvar o IP da conexão
-	s.connectedStations[stationID] = message.Station
+	s.connectedStations[stationID] = conn
 
 	responseMessage.Status = types.Success
 	responseMessage.Station = message.Station
@@ -180,7 +180,13 @@ func (s *Server) HandleListActiveStations(message types.Message) types.Message {
 
 	// Criar uma lista de estações conectadas
 	var activeStations []types.Station
-	for _, station := range s.connectedStations {
+	for ID, _ := range s.connectedStations {
+		station, err := s.getStationFromFile(ID)
+		if err != nil {
+			// não é necessário retornar um erro ao usuário caso não seja possível buscar
+			// alguma das estações
+			fmt.Println("Em HandleListActiveStations:", err)
+		}
 		activeStations = append(activeStations, station)
 	}
 
@@ -511,20 +517,15 @@ func (s *Server) HandleCarUpdate(message types.Message) types.Message {
 	s.sessionsMu.Lock()
 	defer s.sessionsMu.Unlock()
 
-	if car, exists := s.loggedCars[message.Car.CarID]; exists {
-		// Atualiza nível da bateria
-		car.BatteryLevel = message.Car.BatteryLevel
-		car.CoordX = message.Car.CoordX
-		car.CoordY = message.Car.CoordY
-		s.loggedCars[message.Car.CarID] = car
+	if _, exists := s.loggedCars[message.Car.CarID]; exists {
 
 		// Persiste no arquivo diretamente
-		if err := s.saveCarToFile(car); err != nil {
-			fmt.Printf("[ERRO] Falha ao salvar bateria do carro %d: %v\n", car.CarID, err)
+		if err := s.saveCarToFile(message.Car); err != nil {
+			fmt.Printf("[ERRO] Falha ao salvar bateria do carro %d: %v\n", message.Car.CarID, err)
 			return types.Message{Status: types.Error}
 		}
 
-		fmt.Printf("[SYNC] Bateria do carro %d atualizada para %d%%\n", car.CarID, car.BatteryLevel)
+		fmt.Printf("[SYNC] Bateria do carro %d atualizada para %d%%\n", message.Car.CarID, message.Car.BatteryLevel)
 	}
 
 	return types.Message{Status: types.Success}

@@ -50,5 +50,18 @@
     "pix_code": 0,
     "credit_card_number": 0,
     "payment_history": null
+  },
+  {
+    "car_id": 6,
+    "user": "6",
+    "password": "6",
+    "coord_x": 6,
+    "coord_y": 6,
+    "battery_level": 6,
+    "recomended_station": 0,
+    "reserved_station": 0,
+    "pix_code": 0,
+    "credit_card_number": 0,
+    "payment_history": null
   }
 ]

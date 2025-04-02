@@ -21,6 +21,9 @@ func teste2() {
 }
 
 func main() {
-	teste()
+	mapa := map[string]int{"a": 1, "b": 2}
+	for k, v := range mapa {
+		fmt.Println(k, v)
+	}
 
 }
