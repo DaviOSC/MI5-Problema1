@@ -60,6 +60,7 @@ func (s *Server) acceptLoop() {
 }
 
 func (s *Server) HandleRequest(message types.Message, conn net.Conn) types.Message {
+	fmt.Println(message.Req.String())
 	switch message.Req {
 	case types.RegisterCar:
 		return s.HandleRegisterCar(message)
@@ -87,6 +88,10 @@ func (s *Server) HandleRequest(message types.Message, conn net.Conn) types.Messa
 		return s.HandleListStations(message)
 	case types.SelectStation:
 		return s.HandleSelectStation(message, conn)
+	case types.StationUpdate:
+		return s.HandleStationUpdate(message)
+	// case types.GetStationInfo:
+	// 	return s.Handle
 	default:
 		return types.Message{Status: types.Error, Err: "requisição inválida."}
 	}

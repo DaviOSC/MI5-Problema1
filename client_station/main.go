@@ -36,7 +36,7 @@ func (c *StationClient) ReadResponse() (types.Message, error) {
 	if err != nil {
 		log.Fatal("Erro ao decodificar a resposta:", err)
 	}
-
+	fmt.Printf("%d", responseMessage.Station.StationID)
 	return responseMessage, err
 }
 
@@ -55,6 +55,7 @@ func main() {
 3 - Sair`)
 		} else {
 			fmt.Println("Estação iniciada, para sair digite '1'.")
+			go client.readLoop(client.conn)
 		}
 		fmt.Scanln(&choice)
 
@@ -86,34 +87,41 @@ func main() {
 					fmt.Println("Erro:", err)
 				}
 			case "2":
+				message = types.Message{Req: types.ListStations}
+
 				// Criar a mensagem para listar as estações disponíveis
-				message, err = ChooseStation(client.station)
-				if err != nil {
-					fmt.Println("Erro ao criar mensagem:", err)
-					continue
-				}
-			
+				// message, err = ChooseStation(client.station)
+				// if err != nil {
+				// 	fmt.Println("Erro ao criar mensagem:", err)
+				// 	continue
+				// }
+
 				// Enviar a mensagem para listar estações
 				err = client.SendMessage(message)
 				if err != nil {
 					fmt.Println("Erro ao enviar mensagem:", err)
 					continue
 				}
-			
+
 				// Receber a resposta do servidor
 				responseMessage, err := client.ReadResponse()
 				if err != nil {
 					fmt.Println("Erro ao receber resposta:", err)
 					continue
 				}
-			
+
 				// Processar a resposta e permitir que o usuário escolha uma estação
 				station, err := ChooseStationResponse(responseMessage)
 				if err != nil {
 					fmt.Println("Erro:", err)
 					continue
 				}
-			
+
+				if station.StationID == 0 {
+					fmt.Println("Erro: ID da estação inválido.")
+					continue
+				}
+
 				// Criar a mensagem para enviar a estação escolhida ao servidor
 				message, err = SelectStation(station)
 				if err != nil {
@@ -131,7 +139,7 @@ func main() {
 					fmt.Println("Erro ao receber resposta:", err)
 					continue
 				}
-			
+
 				// Receber a resposta do servidor
 				station, err = SelectStationResponse(responseMessage)
 				if err != nil {
@@ -157,4 +165,57 @@ func main() {
 			}
 		}
 	}
+}
+
+func (c *StationClient) HandleRequest(message types.Message) types.Message {
+	switch message.Req {
+	case types.GetStationInfo:
+		return c.HandleGetStationInfo(message, c.station)
+	case types.GetReservedStation:
+		//return c.HandleGetReservedStation(message)
+	case types.PayRecharge:
+		return c.HandleGetStationInfo(message, c.station)
+	case types.RechargeComplete:
+		//return c.HandleRechargeComplete(message)
+	case types.StartRecharge:
+		//return c.HandleStartRecharge(message)
+	}
+	return message
+}
+
+func (c *StationClient) readLoop(conn net.Conn) {
+	responseMessage := types.Message{}
+
+	for {
+		decoder := json.NewDecoder(conn)
+		message := types.Message{}
+		var err = decoder.Decode(&message)
+		if err != nil {
+			// Outros erros são exibidos
+			fmt.Println("Erro ao decodificar JSON:", err)
+			break
+		}
+		responseMessage = c.HandleRequest(message)
+
+		// Enviar a resposta ao cliente
+		err = c.SendResponse(conn, responseMessage)
+		if err != nil {
+			fmt.Println("Erro ao enviar resposta:", err)
+			break
+		}
+	}
+
+}
+
+func (s *StationClient) SendResponse(conn net.Conn, responseMessage types.Message) error {
+	responseBuf, err := json.Marshal(responseMessage)
+	if err != nil {
+		return fmt.Errorf("erro ao serializar resposta: %w", err)
+	}
+
+	_, err = conn.Write(responseBuf)
+	if err != nil {
+		return fmt.Errorf("erro ao enviar resposta: %w", err)
+	}
+	return nil
 }

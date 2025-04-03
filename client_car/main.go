@@ -7,15 +7,14 @@ import (
 	"main/types"
 	"net"
 	"sync"
-	"time"
 )
 
 type CarClient struct {
-	conn          net.Conn
-	car           types.Car
-	batteryTicker *time.Ticker
-	syncTicker    *time.Ticker
-	batteryMutex  sync.Mutex
+	conn net.Conn
+	car  types.Car
+	// batteryTicker *time.Ticker
+	// syncTicker    *time.Ticker
+	batteryMutex sync.Mutex
 }
 
 func NewCarClient() *CarClient {
@@ -27,11 +26,11 @@ func NewCarClient() *CarClient {
 
 	// Criar client com os novos campos
 	c := &CarClient{
-		conn:          conn,
-		car:           types.Car{},
-		batteryTicker: time.NewTicker(5 * time.Second),  // Decremento a cada 5s
-		syncTicker:    time.NewTicker(60 * time.Second), // Sincronização a cada 60s
-		batteryMutex:  sync.Mutex{},
+		conn: conn,
+		car:  types.Car{},
+		// batteryTicker: time.NewTicker(5 * time.Second),  // Decremento a cada 5s
+		// syncTicker:    time.NewTicker(60 * time.Second), // Sincronização a cada 60s
+		// batteryMutex:  sync.Mutex{},
 	}
 
 	// Iniciar monitoramento de bateria em goroutine separada
@@ -111,6 +110,7 @@ func main() {
 				log.Fatal("Erro ao registrar o carro:", err)
 			}
 		case "2":
+			fmt.Print(client.car.CarID)
 			message, err = HandleGetRecommendedStation(client.car)
 			if err != nil {
 				log.Fatal("Erro ao registrar o carro:", err)

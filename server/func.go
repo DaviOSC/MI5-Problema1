@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"main/types"
 	"math"
 	"net"
@@ -59,7 +60,7 @@ func (s *Server) HandleUserLogin(message types.Message, conn net.Conn) types.Mes
 			valid = true
 			responseMessage.Status = types.Success
 			responseMessage.Car = car
-
+			fmt.Printf("%d/n", responseMessage.Car.CarID)
 			s.sessionsMu.Lock()
 			s.loggedCars[car.CarID] = conn
 			s.sessionsMu.Unlock()
@@ -100,7 +101,7 @@ func (s *Server) HandleReserveStation(message types.Message) types.Message {
 
 	// Verifica se o carro possue uma estação recomendada
 	if stationID == 0 {
-		station, err = s.getBestStation(message.Car.CarID)
+		station, err = s.getBestStation(message.Car)
 		if err != nil {
 			responseMessage.Status = types.Error
 			fmt.Printf("Estação não encontrada, na requisição ReserveStation, para o carro de id %d\n", message.Car.CarID)
@@ -151,7 +152,7 @@ func (s *Server) HandleSelectStation(message types.Message, conn net.Conn) types
 	// Bloquear o acesso ao mapa de estações conectadas
 	s.sessionsMu.Lock()
 	defer s.sessionsMu.Unlock()
-
+	fmt.Println(message.Station.StationID)
 	stationID := message.Station.StationID
 
 	// Verificar se a estação já está conectada
@@ -251,7 +252,7 @@ func (s *Server) HandleGetRecommendedStation(message types.Message) types.Messag
 	car := message.Car
 	responseMessage := types.Message{Req: types.GetRecommendedStation}
 	fmt.Printf("Requisição GetRecommendedStation para o carro de id %d\n", car.CarID)
-	station, err := s.getBestStation(car.CarID)
+	station, err := s.getBestStation(car)
 	if err != nil {
 		responseMessage.Status = types.Error
 		fmt.Println("Estação não encontrada, na requisição GetRecommendedStation")
@@ -482,34 +483,31 @@ func (s *Server) getStationFromFile(id int) (types.Station, error) {
 	return types.Station{}, err
 }
 
-func (s *Server) getBestStation(carId int) (types.Station, error) {
-	stations, err := s.listStationsFromFile()
-	if err != nil {
-		return types.Station{}, err
-	}
-	cars, err := s.listCarsFromFile()
-	if err != nil {
-		return types.Station{}, err
-	}
-	var car types.Car
-	for _, c := range cars {
-		if c.CarID == carId {
-			car = c
-			break
-		}
-	}
+func (s *Server) getBestStation(car types.Car) (types.Station, error) {
+	// s.sessionsMu.Lock()
+	// defer s.sessionsMu.Unlock()
 
-	//TODO verificação de carros na fila, e de tempo de espera
 	var bestStation types.Station
 	minDistance := math.MaxFloat64
 
-	for _, station := range stations {
+	for stationID, conn := range s.connectedStations {
+		station, err := s.GetStationInfo(stationID, conn)
+		if err != nil {
+			fmt.Printf("Erro ao obter informações da estação %d: %v\n", stationID, err)
+			continue
+		}
 		distance := math.Abs(float64(car.CoordX-station.CoordX)) + math.Abs(float64(car.CoordY-station.CoordY))
 		if distance < minDistance {
 			minDistance = distance
 			bestStation = station
 		}
 	}
+
+	if minDistance == math.MaxFloat64 {
+		return types.Station{}, fmt.Errorf("nenhuma estação disponível")
+	}
+
+	//TODO outros critérios de escolha da estação
 	return bestStation, nil
 }
 
@@ -571,4 +569,51 @@ func (s *Server) CloseConnection(message types.Message) {
 	} else {
 		fmt.Println("Entidade desconhecida ao tentar fechar conexão.")
 	}
+}
+
+func (s *Server) SendMessageAndReadResponse(conn net.Conn, message types.Message) (types.Message, error) {
+	err := json.NewEncoder(conn).Encode(message)
+	if err != nil {
+		log.Fatal("Erro ao serializar a mensagem:", err)
+	}
+
+	var responseMessage types.Message
+	decoder := json.NewDecoder(conn)
+	err = decoder.Decode(&responseMessage)
+	if err != nil {
+		// Se houver um erro ao decodificar a resposta, o programa será encerrado
+		log.Fatal("Erro ao decodificar a resposta:", err)
+	}
+	return responseMessage, err
+}
+
+func (s *Server) GetStationInfo(id int, conn net.Conn) (types.Station, error) {
+	message := types.Message{Req: types.StationUpdate}
+	responseMessage, err := s.SendMessageAndReadResponse(conn, message)
+	if err != nil {
+		fmt.Println("Erro em GetStationInfo:", err)
+	}
+
+	if responseMessage.Status == types.Success {
+		station, err := s.getStationFromFile(id)
+		if err != nil {
+			fmt.Println("Erro em GetStationInfo:", err)
+		}
+		return station, err
+	} else {
+		err = fmt.Errorf(responseMessage.Err)
+		return types.Station{}, err
+	}
+}
+
+func (s *Server) HandleStationUpdate(message types.Message) types.Message {
+	responseMessage := types.Message{Req: types.StationUpdate, Status: types.Success}
+	station := message.Station
+	err := s.saveStationToFile(station)
+	if err != nil {
+		fmt.Println("Em HandleStationUpdate:", err)
+		responseMessage.Status = types.Error
+	}
+
+	return responseMessage
 }

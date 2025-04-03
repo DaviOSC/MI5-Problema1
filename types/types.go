@@ -1,6 +1,6 @@
 package types
 
-const CarSpeed = 2
+const CarSpeed = 40
 
 type Payment struct {
 	PaymentID int `json:"payment_id"`
@@ -64,6 +64,8 @@ const (
 	ListActiveStations
 	SelectStation // Selecionar uma estação, passando o ID do carro e o ID da estação: carro -> server
 	PaymentHistory
+	GetStationInfo
+	StationUpdate
 )
 
 var RequestsNames = map[Requests]string{
@@ -83,6 +85,8 @@ var RequestsNames = map[Requests]string{
 	ListActiveStations:    "list_active_stations",
 	SelectStation:         "select_station",
 	PaymentHistory:        "payment_history",
+	GetStationInfo:        "get_station_info",
+	StationUpdate:         "station_update",
 }
 
 type ResponseStatus int

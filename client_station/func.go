@@ -93,3 +93,23 @@ func ChooseStationResponse(responseMessage types.Message) (types.Station, error)
 
 	return types.Station{}, fmt.Errorf("estação inválida")
 }
+
+func (c *StationClient) HandleGetStationInfo(message types.Message, station types.Station) types.Message {
+	return types.Message{
+		Req:     types.GetStationInfo,
+		Station: station,
+	}
+}
+
+func (c *StationClient) HandleGetReservedStation(message types.Message) types.Message {
+	return types.Message{
+		Req: types.GetReservedStation,
+	}
+}
+
+func (c *StationClient) HandleStartRecharge(message types.Message, station types.Station) types.Message {
+	return types.Message{
+		Req:     types.StartRecharge,
+		Station: station,
+	}
+}

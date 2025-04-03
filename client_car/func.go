@@ -85,6 +85,7 @@ func HandleStartRecharge(car types.Car) (types.Message, error) {
 		Car: car,
 	}, nil
 }
+
 func HandlePaymentHistory(car types.Car) (types.Message, error) {
 	return types.Message{
 		Req: types.PaymentHistory,
@@ -310,35 +311,35 @@ func startCarMovement(client *CarClient, station types.Station) {
 			if math.Abs(coordX-stationX) < 0.01 && math.Abs(coordY-stationY) < 0.01 {
 				fmt.Printf("Carro %d chegou à estação %d.\n", car.CarID, station.StationID)
 				client.car = car
-				client.syncCarWithServer()
+				//client.syncCarWithServer()
 				return
 			}
 		}
 	}
 }
 
-// Monitoramento da bateria
-func (c *CarClient) batteryMonitor() {
-	for {
-		select {
-		case <-c.batteryTicker.C:
-			c.batteryMutex.Lock()
-			if c.car.BatteryLevel > 0 {
-				c.car.BatteryLevel--
-				// fmt.Printf("🔋 Bateria atual: %d%%\n", c.car.BatteryLevel)
+// // Monitoramento da bateria
+// func (c *CarClient) batteryMonitor() {
+// 	for {
+// 		select {
+// 		case <-c.batteryTicker.C:
+// 			c.batteryMutex.Lock()
+// 			if c.car.BatteryLevel > 0 {
+// 				c.car.BatteryLevel--
+// 				// fmt.Printf("🔋 Bateria atual: %d%%\n", c.car.BatteryLevel)
 
-				// Alerta aos 15%
-				// if c.car.BatteryLevel == 15 {
-				// 	fmt.Println("⚠️  Bateria crítica! Procure uma estação!")
-				// }
-			}
-			c.batteryMutex.Unlock()
+// 				// Alerta aos 15%
+// 				// if c.car.BatteryLevel == 15 {
+// 				// 	fmt.Println("⚠️  Bateria crítica! Procure uma estação!")
+// 				// }
+// 			}
+// 			c.batteryMutex.Unlock()
 
-		case <-c.syncTicker.C:
-			c.syncCarWithServer()
-		}
-	}
-}
+// 		case <-c.syncTicker.C:
+// 			c.syncCarWithServer()
+// 		}
+// 	}
+// }
 
 // Sincroniza com servidor
 func (c *CarClient) syncCarWithServer() {
