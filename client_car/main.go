@@ -151,7 +151,7 @@ func main() {
 			fmt.Println("Opção inválida.")
 			continue
 		}
-
+		message.ClientType = types.CarClientType
 		err = client.SendMessage(message)
 		if err != nil {
 			log.Fatal("Erro ao enviar mensagem:", err)

@@ -15,6 +15,7 @@ type StationClient struct {
 
 func (c *StationClient) SendMessage(message types.Message) error {
 	// Enviar a mensagem ao servidor
+	message.ClientType = types.StationClientType
 	buf, err := json.Marshal(message)
 	if err != nil {
 		log.Fatal("Erro ao serializar a mensagem:", err)
@@ -87,14 +88,7 @@ func main() {
 					fmt.Println("Erro:", err)
 				}
 			case "2":
-				message = types.Message{Req: types.ListStations}
-
-				// Criar a mensagem para listar as estações disponíveis
-				// message, err = ChooseStation(client.station)
-				// if err != nil {
-				// 	fmt.Println("Erro ao criar mensagem:", err)
-				// 	continue
-				// }
+				message = types.Message{ClientType: types.StationClientType, Req: types.ListStations}
 
 				// Enviar a mensagem para listar estações
 				err = client.SendMessage(message)
@@ -170,21 +164,21 @@ func main() {
 func (c *StationClient) HandleRequest(message types.Message) types.Message {
 	switch message.Req {
 	case types.GetStationInfo:
-		return c.HandleGetStationInfo(message, c.station)
-	case types.GetReservedStation:
-		//return c.HandleGetReservedStation(message)
+		return c.HandleGetStationInfo(message)
+	case types.ReserveStation:
+		return c.HandleReserveStation(message)
 	case types.PayRecharge:
-		return c.HandleGetStationInfo(message, c.station)
+		return c.HandlePayRecharge(message)
 	case types.RechargeComplete:
-		//return c.HandleRechargeComplete(message)
+		return c.HandleRechargeComplete(message)
 	case types.StartRecharge:
-		//return c.HandleStartRecharge(message)
+		return c.HandleStartRecharge(message)
 	}
 	return message
 }
 
 func (c *StationClient) readLoop(conn net.Conn) {
-	responseMessage := types.Message{}
+	var responseMessage types.Message
 
 	for {
 		decoder := json.NewDecoder(conn)
@@ -196,26 +190,12 @@ func (c *StationClient) readLoop(conn net.Conn) {
 			break
 		}
 		responseMessage = c.HandleRequest(message)
-
 		// Enviar a resposta ao cliente
-		err = c.SendResponse(conn, responseMessage)
+		err = c.SendMessage(responseMessage)
 		if err != nil {
 			fmt.Println("Erro ao enviar resposta:", err)
 			break
 		}
 	}
 
-}
-
-func (s *StationClient) SendResponse(conn net.Conn, responseMessage types.Message) error {
-	responseBuf, err := json.Marshal(responseMessage)
-	if err != nil {
-		return fmt.Errorf("erro ao serializar resposta: %w", err)
-	}
-
-	_, err = conn.Write(responseBuf)
-	if err != nil {
-		return fmt.Errorf("erro ao enviar resposta: %w", err)
-	}
-	return nil
 }

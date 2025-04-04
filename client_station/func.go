@@ -54,8 +54,9 @@ func ChooseStation(station types.Station) (types.Message, error) {
 
 func SelectStation(station types.Station) (types.Message, error) {
 	return types.Message{
-		Req:     types.SelectStation,
-		Station: station,
+		ClientType: types.StationClientType,
+		Req:        types.SelectStation,
+		Station:    station,
 	}, nil
 }
 func SelectStationResponse(responseMessage types.Message) (types.Station, error) {
@@ -94,22 +95,42 @@ func ChooseStationResponse(responseMessage types.Message) (types.Station, error)
 	return types.Station{}, fmt.Errorf("estação inválida")
 }
 
-func (c *StationClient) HandleGetStationInfo(message types.Message, station types.Station) types.Message {
+func (c *StationClient) HandleGetStationInfo(message types.Message) types.Message {
 	return types.Message{
 		Req:     types.GetStationInfo,
-		Station: station,
+		Station: c.station,
 	}
 }
 
-func (c *StationClient) HandleGetReservedStation(message types.Message) types.Message {
-	return types.Message{
-		Req: types.GetReservedStation,
-	}
+func (c *StationClient) HandleReserveStation(message types.Message) types.Message {
+	responseMessage := types.Message{Req: types.ReserveStation, Status: types.Success}
+	car := message.Car
+
+	c.station.CarList = append(c.station.CarList, car.CarID)
+	c.station.CarsWaiting += 1
+	car.ReservedStation = c.station.StationID
+
+	responseMessage.Car = car
+	responseMessage.Station = c.station
+
+	return responseMessage
 }
 
-func (c *StationClient) HandleStartRecharge(message types.Message, station types.Station) types.Message {
+func (c *StationClient) HandleStartRecharge(message types.Message) types.Message {
 	return types.Message{
 		Req:     types.StartRecharge,
-		Station: station,
+		Station: c.station,
+	}
+}
+func (c *StationClient) HandleRechargeComplete(message types.Message) types.Message {
+	return types.Message{
+		Req:     types.RechargeComplete,
+		Station: c.station,
+	}
+}
+func (c *StationClient) HandlePayRecharge(message types.Message) types.Message {
+	return types.Message{
+		Req:     types.PayRecharge,
+		Station: c.station,
 	}
 }

@@ -59,46 +59,67 @@ func (s *Server) acceptLoop() {
 	}
 }
 
-func (s *Server) HandleRequest(message types.Message, conn net.Conn) types.Message {
+func (s *Server) HandleRequestCar(message types.Message, conn net.Conn) (types.Message, net.Conn) {
 	fmt.Println(message.Req.String())
 	switch message.Req {
 	case types.RegisterCar:
-		return s.HandleRegisterCar(message)
+		return s.HandleRegisterCar(message, conn)
 	case types.UserLogin:
 		return s.HandleUserLogin(message, conn)
-	case types.CarUpdate:
-		return s.HandleCarUpdate(message)
-	case types.GetRecommendedStation:
-		return s.HandleGetRecommendedStation(message)
-	case types.GetReservedStation:
-		return s.HandleGetReservedStation(message)
-	case types.ReserveStation:
-		return s.HandleReserveStation(message)
-	case types.StartRecharge:
-		return s.HandleStartRecharge(message)
-	case types.RechargeComplete:
-		return s.HandleRechargeComplete(message)
-	case types.PayRecharge:
-		return s.HandlePayRecharge(message)
-	case types.ListActiveStations:
-		return s.HandleListActiveStations(message)
-	case types.RegisterStation:
-		return s.HandleRegisterStation(message)
 	case types.ListStations:
-		return s.HandleListStations(message)
-	case types.SelectStation:
-		return s.HandleSelectStation(message, conn)
-	case types.StationUpdate:
-		return s.HandleStationUpdate(message)
-	// case types.GetStationInfo:
-	// 	return s.Handle
+		return s.HandleListStations(message, conn)
+	case types.ReserveStation:
+		return s.HandleReserveStation(message, conn)
+	case types.ListActiveStations:
+		return s.HandleListActiveStations(message, conn)
+	case types.PayRecharge:
+		return s.HandlePayRecharge(message, conn)
+	case types.GetRecommendedStation:
+		return s.HandleGetRecommendedStation(message, conn)
+	case types.GetReservedStation:
+		return s.HandleGetReservedStation(message, conn)
+	case types.RechargeComplete:
+		return s.HandleRechargeComplete(message, conn)
+	case types.StartRecharge:
+		return s.HandleStartRecharge(message, conn)
+	case types.CarUpdate:
+		return s.HandleCarUpdate(message, conn)
+
 	default:
-		return types.Message{Status: types.Error, Err: "requisição inválida."}
+		return types.Message{Status: types.Error, Err: "requisição inválida."}, conn
+	}
+}
+
+func (s *Server) HandleRequestStation(message types.Message, conn net.Conn) (types.Message, net.Conn) {
+	fmt.Println(message.Req.String())
+	switch message.Req {
+	case types.RegisterStation:
+		return s.HandleRegisterStationFromStation(message, conn)
+	case types.ListStations:
+		return s.HandleListStationsFromStation(message, conn)
+	case types.ReserveStation:
+		return s.HandleReserveStationFromStation(message, conn)
+	case types.SelectStation:
+		return s.HandleSelectStationFromStation(message, conn)
+	case types.ListActiveStations:
+		return s.HandleListActiveStationsFromStation(message, conn)
+	case types.PayRecharge:
+		return s.HandlePayRechargeFromStation(message, conn)
+	case types.RechargeComplete:
+		return s.HandleRechargeCompleteFromStation(message, conn)
+	case types.StartRecharge:
+		return s.HandleStartRechargeFromStation(message, conn)
+	case types.StationUpdate:
+		return s.HandleStationUpdate(message, conn)
+	default:
+		return types.Message{Status: types.Error, Err: "requisição inválida."}, conn
 	}
 }
 
 func (s *Server) readLoop(conn net.Conn) {
 	responseMessage := types.Message{}
+	// Conexão auxiliar para o servidor trocar mensagens entre carro e estação
+	var auxiliaryConn net.Conn
 
 	for {
 		decoder := json.NewDecoder(conn)
@@ -114,13 +135,21 @@ func (s *Server) readLoop(conn net.Conn) {
 			fmt.Println("Erro ao decodificar JSON:", err)
 			break
 		}
-		responseMessage = s.HandleRequest(message, conn)
+
+		if message.ClientType == types.CarClientType {
+			// auxiliaryConn pode ser uma outra conexão ou a conexão atual(conn)
+			responseMessage, auxiliaryConn = s.HandleRequestCar(message, conn)
+		} else {
+			responseMessage, auxiliaryConn = s.HandleRequestStation(message, conn)
+		}
 
 		// Enviar a resposta ao cliente
-		err = s.SendResponse(conn, responseMessage)
-		if err != nil {
-			fmt.Println("Erro ao enviar resposta:", err)
-			break
+		if auxiliaryConn != nil {
+			err = s.SendResponse(auxiliaryConn, responseMessage)
+			if err != nil {
+				fmt.Println("Erro ao enviar resposta:", err)
+				break
+			}
 		}
 	}
 	defer s.CloseConnection(responseMessage)

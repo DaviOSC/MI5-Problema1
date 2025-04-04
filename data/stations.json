@@ -3,8 +3,10 @@
     "station_id": 1,
     "coord_x": 2,
     "coord_y": 2,
-    "car_list": [],
-    "cars_waiting": 1,
+    "car_list": [
+      401
+    ],
+    "cars_waiting": 2,
     "in_use": 0
   },
   {

@@ -116,6 +116,7 @@ func (c ClientType) String() string {
 }
 
 type Message struct {
+	ClientType  ClientType     `json:"client_type,omitempty"`
 	Req         Requests       `json:"request,omitempty"`
 	Status      ResponseStatus `json:"status,omitempty"`
 	Err         string         `json:"err,omitempty"`
