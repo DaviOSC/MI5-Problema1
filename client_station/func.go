@@ -2,23 +2,9 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"main/types"
-	"net"
 	"time"
 )
-
-func NewStationClient() *StationClient {
-	// Conectar ao servidor
-	conn, err := net.Dial("tcp", "localhost:8080")
-	if err != nil {
-		log.Fatal("Erro ao conectar ao servidor:", err)
-	}
-
-	return &StationClient{
-		conn: conn,
-	}
-}
 
 func RegisterStation() (types.Message, error) {
 	// Registrar uma estação
@@ -40,14 +26,39 @@ func RegisterStation() (types.Message, error) {
 
 func RegisterStationResponse(responseMessage types.Message) (types.Station, error) {
 	if responseMessage.Status == types.Success {
-		fmt.Println("Estação registrada com sucesso.")
 		return responseMessage.Station, nil
 	} else {
-		return responseMessage.Station, fmt.Errorf("erro ao registrar estação")
+		return responseMessage.Station, fmt.Errorf(responseMessage.Err)
 	}
 }
 
-func ChooseStation(station types.Station) (types.Message, error) {
+func (c *StationClient) HandleRegisterStation() error {
+	// Gerar mensagem com requisição para registrar posto
+	message, err := RegisterStation()
+	if err != nil {
+		return err
+	}
+	// Enviar mensagem
+	err = c.SendMessage(message)
+	if err != nil {
+		return err
+	}
+
+	// Receber a resposta do servidor
+	responseMessage, err := c.ReadResponse()
+	if err != nil {
+		return err
+	}
+
+	// Tratar resposta do servidor
+	_, err = RegisterStationResponse(responseMessage)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func HandleListStations(station types.Station) (types.Message, error) {
 	return types.Message{
 		Req:        types.ListStations,
 		Station:    station,
@@ -72,9 +83,9 @@ func SelectStationResponse(responseMessage types.Message) (types.Station, error)
 	}
 }
 
-func ChooseStationResponse(responseMessage types.Message) (types.Station, error) {
+func HandleListStationsResponse(responseMessage types.Message) (types.Station, error) {
 	if responseMessage.Status != types.Success {
-		return types.Station{}, fmt.Errorf("falha ao listar estações: %v", responseMessage.Err)
+		return types.Station{}, fmt.Errorf(responseMessage.Err)
 	}
 
 	// Exibir estações disponíveis
@@ -85,8 +96,14 @@ func ChooseStationResponse(responseMessage types.Message) (types.Station, error)
 
 	// Escolher uma estação
 	var stationID int
-	fmt.Print("Escolha o ID da estação: ")
-	fmt.Scanln(&stationID)
+	for {
+		fmt.Print("Escolha o ID da estação: ")
+		fmt.Scanln(&stationID)
+		if stationID > 0 {
+			break
+		}
+		fmt.Println("ID inválido")
+	}
 
 	for _, station := range responseMessage.StationList {
 		if station.StationID == stationID {
@@ -96,6 +113,49 @@ func ChooseStationResponse(responseMessage types.Message) (types.Station, error)
 	}
 
 	return types.Station{}, fmt.Errorf("estação inválida")
+}
+
+func (c *StationClient) HandleListAndChooseStation() (types.Station, error) {
+	message := types.Message{Req: types.ListStations}
+	station := types.Station{}
+
+	// Enviar a mensagem para listar estações
+	err := c.SendMessage(message)
+	if err != nil {
+		return station, err
+	}
+
+	// Receber a resposta do servidor
+	responseMessage, err := c.ReadResponse()
+	if err != nil {
+		return station, err
+	}
+
+	// Processar a resposta e permitir que o usuário escolha uma estação
+	station, err = HandleListStationsResponse(responseMessage)
+	if err != nil {
+		return station, err
+	}
+
+	// Informar ao servidor qual estação foi escolhida
+	message = types.Message{
+		Req:     types.SelectStation,
+		Station: station,
+	}
+
+	err = c.SendMessage(message)
+	if err != nil {
+		return station, err
+	}
+
+	responseMessage, err = c.ReadResponse()
+	if err != nil {
+		return station, err
+	}
+
+	station, err = SelectStationResponse(responseMessage)
+
+	return station, err
 }
 
 func (c *StationClient) HandleGetStationInfo(message types.Message) types.Message {

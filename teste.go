@@ -2,10 +2,8 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"os/signal"
+	"slices"
 	"sync"
-	"syscall"
 )
 
 var mu sync.Mutex
@@ -24,8 +22,12 @@ func teste2() {
 }
 
 func main() {
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
-	for {
+	list := make([]int, 1)
+	for i := range 100 {
+		list = slices.Insert(list, len(list)-1, i)
+	}
+
+	for i := range 100 {
+		fmt.Print(list[i], " ")
 	}
 }

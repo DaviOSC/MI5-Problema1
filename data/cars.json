@@ -8,7 +8,7 @@
     "battery_level": 100,
     "recomended_station": 0,
     "reserved_station": 0,
-    "paid_reserved_station": false,
+    "paid_reserved_station": true,
     "pix_code": 401,
     "credit_card_number": 0,
     "payment_history": [
@@ -17,7 +17,7 @@
         "from": 10,
         "to": 401,
         "value": 100,
-        "timestamp": "2025-04-05T01:14:03.059847193-03:00"
+        "timestamp": "2025-04-05T17:26:04.291753259-03:00"
       }
     ]
   },

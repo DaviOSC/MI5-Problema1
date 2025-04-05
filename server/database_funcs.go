@@ -9,6 +9,7 @@ import (
 	"os"
 )
 
+// Enviar mensagem para um cliente
 func (s *Server) SendResponse(conn net.Conn, responseMessage types.Message) error {
 	responseBuf, err := json.Marshal(responseMessage)
 	if err != nil {
@@ -22,16 +23,19 @@ func (s *Server) SendResponse(conn net.Conn, responseMessage types.Message) erro
 	return nil
 }
 
-// Funções para salvar e ler os dados em arquivos JSON
+// Salvar um carro em um arquivo JSON
 func (s *Server) saveCarToFile(car types.Car) error {
+	// Listar carros que já existem no arquivo
 	cars, err := s.listCarsFromFile()
 	if err != nil {
 		cars = []types.Car{}
 	}
 
 	found := false
+	// Verificar se o carro a ser salvo já existe no arquivo
 	for i, existingCar := range cars {
 		if existingCar.CarID == car.CarID {
+			// Caso encontre, o carro é atualizado
 			cars[i] = car
 			found = true
 			break //Interrompe o loop após encontrar o carro
@@ -39,34 +43,44 @@ func (s *Server) saveCarToFile(car types.Car) error {
 	}
 
 	if !found {
+		// Se o carro for novo, é inserido na lista
 		cars = append(cars, car)
 	}
-
+	// Lista de carros é salva em JSON
 	return s.saveJSONToFile("../data/cars.json", cars)
 }
 
+// Salvar um posto em um arquivo JSON
 func (s *Server) saveStationToFile(station types.Station) error {
+	// Listar Postos que já existem no arquivo
 	stations, err := s.listStationsFromFile()
 	if err != nil {
 		stations = []types.Station{}
 	}
+
+	// Verificar se o Posto a ser salvo já existe no arquivo
 	for i, existingStation := range stations {
 		if existingStation.StationID == station.StationID {
+			// Caso encontre, o Posto é atualizado
 			stations[i] = station
 			fmt.Println("Tentativa de alterar uma estação existente")
 			return s.saveJSONToFile("../data/stations.json", stations)
 		}
 	}
+	// Se o Posto for novo, é inserido na lista
 	stations = append(stations, station)
 	return s.saveJSONToFile("../data/stations.json", stations)
 }
 
+// Função para salvar uma estrutura em um arquivo JSON
 func (s *Server) saveJSONToFile(fileName string, v interface{}) error {
+	// Estrutura é serializada
 	jsonData, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
 		fmt.Println("Erro ao serializar JSON:", err)
 		return err
 	}
+	// Dados são escritos no arquivo
 	err = os.WriteFile(fileName, jsonData, 0644)
 	if err != nil {
 		fmt.Println("Erro ao salvar o arquivo JSON:", err)
@@ -75,6 +89,7 @@ func (s *Server) saveJSONToFile(fileName string, v interface{}) error {
 	return nil
 }
 
+// Retorna uma lista com todos os carros no arquivo JSON
 func (s *Server) listCarsFromFile() ([]types.Car, error) {
 	var cars []types.Car
 	data, err := os.ReadFile("../data/cars.json")
@@ -88,6 +103,7 @@ func (s *Server) listCarsFromFile() ([]types.Car, error) {
 	return cars, nil
 }
 
+// Retorna uma lista com todos os Postos no arquivo JSON
 func (s *Server) listStationsFromFile() ([]types.Station, error) {
 	var stations []types.Station
 	data, err := os.ReadFile("../data/stations.json")
@@ -101,6 +117,7 @@ func (s *Server) listStationsFromFile() ([]types.Station, error) {
 	return stations, nil
 }
 
+// Retorna um carro especifico, atraves do ID, do arquivo JSON
 func (s *Server) getCarFromFile(id int) (types.Car, error) {
 	cars, err := s.listCarsFromFile()
 	if err != nil {
@@ -114,6 +131,7 @@ func (s *Server) getCarFromFile(id int) (types.Car, error) {
 	return types.Car{}, err
 }
 
+// Retorna um posto especifico, atraves do ID, do arquivo JSON
 func (s *Server) getStationFromFile(id int) (types.Station, error) {
 	stations, err := s.listStationsFromFile()
 	if err != nil {
@@ -127,6 +145,7 @@ func (s *Server) getStationFromFile(id int) (types.Station, error) {
 	return types.Station{}, err
 }
 
+// Calcula e retorna o melhor posto para o carro passado como parâmetro
 func (s *Server) getBestStation(car types.Car) (types.Station, error) {
 
 	var bestStation types.Station
@@ -138,10 +157,13 @@ func (s *Server) getBestStation(car types.Car) (types.Station, error) {
 			fmt.Printf("Erro ao obter informações da estação %d: %v\n", stationID, err)
 			continue
 		}
-
+		// Calcula distância
 		distance := math.Abs(float64(car.CoordX-station.CoordX)) + math.Abs(float64(car.CoordY-station.CoordY))
+		// Calcula o tempo de espera baseado na quantidade de carros na fila
 		waitTime := float64(station.CarsWaiting) * types.RechargeTime
+		// Formula do Score
 		score := (distance * types.CarSpeed) + waitTime
+		// O posto com menor score é escolhido
 		if score < minScore {
 			minScore = score
 			bestStation = station
@@ -149,63 +171,21 @@ func (s *Server) getBestStation(car types.Car) (types.Station, error) {
 	}
 
 	if minScore == math.MaxFloat64 {
-		return types.Station{}, fmt.Errorf("Nenhuma estação disponível")
+		return types.Station{}, fmt.Errorf("nenhuma estação disponível")
 	}
 
 	return bestStation, nil
 }
 
-// func (s *Server) CloseConnection(conn net.Conn) {
-// 	fmt.Println("========== Fechando conexão com o cliente ==========")
-// 	fmt.Println(message.ClientType.String())
-// 	if message.ClientType == types.CarClientType {
-// 		reservedStationID := message.Car.ReservedStation
-// 		fmt.Printf("Carro %d desconectado do servidor", message.Car.CarID)
-// 		if reservedStationID != 0 {
-// 			reservedStation, err := s.getStationFromFile(reservedStationID)
-// 			if err != nil {
-// 				fmt.Println("Erro em CloseConnection (Carro):", err)
-// 				return
-// 			}
-
-// 			reservedStation.CarsWaiting -= 1
-// 			index := slices.Index(reservedStation.CarList, message.Car.CarID)
-// 			if index >= 0 {
-// 				reservedStation.CarList = slices.Delete(reservedStation.CarList, index, index+1)
-// 			}
-// 			if reservedStation.InUseBy == message.Car.CarID {
-// 				reservedStation.InUseBy = 0
-// 			}
-// 			message.Car.RecomendedStation = 0
-// 			message.Car.ReservedStation = 0
-// 			s.saveCarToFile(message.Car)
-// 			s.saveStationToFile(reservedStation)
-// 		}
-// 	} else if message.ClientType == types.StationClientType {
-
-// 		fmt.Printf("Estação %d desconectada\n", message.Station.StationID)
-
-// 		s.sessionsMu.Lock()
-// 		delete(s.connectedStations, message.Station.StationID)
-// 		s.sessionsMu.Unlock()
-
-// 		err := s.saveStationToFile(message.Station)
-// 		if err != nil {
-// 			fmt.Println("Erro em CloseConnection (Estação):", err)
-// 		}
-
-// 	} else {
-// 		fmt.Println("Entidade desconhecida ao tentar fechar conexão.")
-// 	}
-// }
-
+// Envia uma requisição ao posto para que atualize suas informações com o servidor
 func (s *Server) GetStationInfo(id int, conn net.Conn) (types.Station, error) {
 	message := types.Message{Req: types.StationUpdate}
+	// Envia a requisição
 	err := s.SendResponse(conn, message)
 	if err != nil {
 		fmt.Println("Erro em GetStationInfo:", err)
 	}
-
+	// Recebe os dados do arquivo
 	station, err := s.getStationFromFile(id)
 	if err != nil {
 		fmt.Println("Erro em GetStationInfo:", err)

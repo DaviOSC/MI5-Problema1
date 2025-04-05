@@ -6,6 +6,9 @@ import (
 	"net"
 )
 
+/*
+Registra um novo posto e salva no arquivo JSON
+*/
 func (s *Server) HandleRegisterStationFromStation(message types.Message, conn net.Conn) (types.Message, net.Conn) {
 	station := message.Station
 	responseMessage := types.Message{Req: types.RegisterStation}
@@ -13,18 +16,20 @@ func (s *Server) HandleRegisterStationFromStation(message types.Message, conn ne
 	err := s.saveStationToFile(station)
 	if err != nil {
 		responseMessage.Status = types.Error
-		fmt.Println("Erro ao salvar a estação")
+		responseMessage.Err = fmt.Sprintln("Erro ao salvar a estação no arquivo JSON")
 	} else {
 		responseMessage.Status = types.Success
 		responseMessage.Station = station
-		fmt.Printf("Estação com id %d registrada com sucesso", station.StationID)
 	}
 	return responseMessage, conn
 }
 
+/*
+Requisição acionada quando um cliente posto desconecta do servidor
+Qualquer requisição anterior não concluida é finalizada
+*/
 func (s *Server) HandleExitStation(message types.Message, conn net.Conn) (types.Message, net.Conn) {
 	responseMessage := types.Message{Req: types.ExitStation}
-	fmt.Printf("Estação %d desconectada\n", message.Station.StationID)
 
 	s.sessionsMu.Lock()
 	delete(s.connectedStations, message.Station.StationID)
@@ -32,34 +37,40 @@ func (s *Server) HandleExitStation(message types.Message, conn net.Conn) (types.
 
 	err := s.saveStationToFile(message.Station)
 	if err != nil {
-		fmt.Println("Erro em CloseConnection (Estação):", err)
+		responseMessage.Status = types.Error
+		responseMessage.Err = fmt.Sprintln("Erro em ExitStation:", err)
 	}
 	responseMessage.Status = types.Success
 	return responseMessage, conn
 }
 
+/*
+Retorna a lista de todas as estações salvas no servidor
+*/
 func (s *Server) HandleListStationsFromStation(message types.Message, conn net.Conn) (types.Message, net.Conn) {
 	stations, err := s.listStationsFromFile()
 	responseMessage := types.Message{Req: types.ListStations}
 
 	if err != nil {
 		responseMessage.Status = types.Error
-		fmt.Println("Erro ao listar estações:", err)
+		responseMessage.Err = fmt.Sprintln("Erro ao listar estações:", err)
 	} else {
 		responseMessage.Status = types.Success
 		responseMessage.StationList = stations
-		fmt.Println("Estações listadas com sucesso.")
 	}
 
 	return responseMessage, conn
 }
 
+/*
+Verifica o estado da requisição, salva o carro e a estação em JSON
+em caso de sucesso, e repassa para o caro que fez a requisição original
+*/
 func (s *Server) HandleReserveStationFromStation(message types.Message, conn net.Conn) (types.Message, net.Conn) {
 	responseMessage := types.Message{Req: types.ReserveStation, Status: types.Success}
 	if message.Status == types.Error {
 		responseMessage.Status = types.Error
 		responseMessage.Err = message.Err
-		fmt.Printf("Erro ao reservar a estação: %s\n", message.Err)
 		return responseMessage, conn
 	}
 	s.saveCarToFile(message.Car)
@@ -68,9 +79,11 @@ func (s *Server) HandleReserveStationFromStation(message types.Message, conn net
 	return message, s.loggedCars[message.Car.CarID]
 }
 
+/*
+Adiciona a estação, selecionada por um cliente posto, à lista de estações conectadas
+*/
 func (s *Server) HandleSelectStationFromStation(message types.Message, conn net.Conn) (types.Message, net.Conn) {
 	responseMessage := types.Message{Req: types.SelectStation}
-	fmt.Printf("Requisição SelectStation para a estação de id %d\n", message.Station.StationID)
 	// Bloquear o acesso ao mapa de estações conectadas
 	s.sessionsMu.Lock()
 	defer s.sessionsMu.Unlock()
@@ -81,7 +94,6 @@ func (s *Server) HandleSelectStationFromStation(message types.Message, conn net.
 	if _, exists := s.connectedStations[stationID]; exists {
 		responseMessage.Status = types.Error
 		responseMessage.Err = fmt.Sprintf("estação com ID %d já está conectada", stationID)
-		fmt.Printf("Erro: Estação com ID %d já está conectada.\n", stationID)
 		return responseMessage, conn
 	}
 	// Adicionar a estação ao mapa de estações conectadas
@@ -90,11 +102,13 @@ func (s *Server) HandleSelectStationFromStation(message types.Message, conn net.
 
 	responseMessage.Status = types.Success
 	responseMessage.Station = message.Station
-	fmt.Printf("Estação com ID %d conectada com sucesso. IP: %s\n", responseMessage.Station.StationID, conn.RemoteAddr().String())
-	fmt.Printf("Estação %d adicionada com sucesso. IP: %s\n", stationID, conn.RemoteAddr().String())
+
 	return responseMessage, conn
 }
 
+/*
+Retorna a lista das estações conectadas atualmente no servidor
+*/
 func (s *Server) HandleListActiveStationsFromStation(message types.Message, conn net.Conn) (types.Message, net.Conn) {
 	responseMessage := types.Message{Req: types.ListActiveStations, Status: types.Success}
 
@@ -109,17 +123,20 @@ func (s *Server) HandleListActiveStationsFromStation(message types.Message, conn
 		if err != nil {
 			// não é necessário retornar um erro ao usuário caso não seja possível buscar
 			// alguma das estações
-			fmt.Println("Em HandleListActiveStations:", err)
+			continue
 		}
 		activeStations = append(activeStations, station)
 	}
 
 	// Adicionar a lista de estações conectadas à resposta
 	responseMessage.StationList = activeStations
-	fmt.Printf("Estações ativas listadas com sucesso: %d estações conectadas.\n", len(activeStations))
 	return responseMessage, conn
 }
 
+/*
+Verifica o estado da requisição, salva o carro e a estação em JSON
+em caso de sucesso, e repassa para o caro que fez a requisição original
+*/
 func (s *Server) HandlePayRechargeFromStation(message types.Message, conn net.Conn) (types.Message, net.Conn) {
 	if message.Status == types.Success {
 		s.saveCarToFile(message.Car)
@@ -128,6 +145,10 @@ func (s *Server) HandlePayRechargeFromStation(message types.Message, conn net.Co
 	return message, s.loggedCars[message.Car.CarID]
 }
 
+/*
+Verifica o estado da requisição, salva o carro e a estação em JSON
+em caso de sucesso, e repassa para o caro que fez a requisição original
+*/
 func (s *Server) HandleRechargeCompleteFromStation(message types.Message, conn net.Conn) (types.Message, net.Conn) {
 	if message.Status == types.Success {
 		s.saveCarToFile(message.Car)
@@ -135,6 +156,11 @@ func (s *Server) HandleRechargeCompleteFromStation(message types.Message, conn n
 	}
 	return message, s.loggedCars[message.Car.CarID]
 }
+
+/*
+Verifica o estado da requisição, salva o carro e a estação em JSON
+em caso de sucesso, e repassa para o caro que fez a requisição original
+*/
 func (s *Server) HandleStartRechargeFromStation(message types.Message, conn net.Conn) (types.Message, net.Conn) {
 	if message.Status == types.Success {
 		s.saveCarToFile(message.Car)
@@ -143,13 +169,17 @@ func (s *Server) HandleStartRechargeFromStation(message types.Message, conn net.
 	return message, s.loggedCars[message.Car.CarID]
 }
 
+/*
+Recebe dados de uma estação para serem salvos em JSON,
+não retorna respostas para o cliente que fez a requisição
+*/
 func (s *Server) HandleStationUpdate(message types.Message, conn net.Conn) (types.Message, net.Conn) {
 	responseMessage := types.Message{Req: types.StationUpdate, Status: types.Success}
 	station := message.Station
 	err := s.saveStationToFile(station)
 	if err != nil {
-		fmt.Println("Em HandleStationUpdate:", err)
 		responseMessage.Status = types.Error
+		responseMessage.Err = fmt.Sprintln("Em HandleStationUpdate:", err)
 	}
 	// nil para não enviar a mensagem para o cliente
 	return responseMessage, nil

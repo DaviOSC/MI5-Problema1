@@ -13,7 +13,7 @@
     "coord_y": 100,
     "car_list": [],
     "cars_waiting": 0,
-    "in_use": 401
+    "in_use": 0
   },
   {
     "station_id": 11,

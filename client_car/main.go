@@ -11,22 +11,26 @@ import (
 	"syscall"
 )
 
+// Estrutura para respresentar os dados do cliente
 type CarClient struct {
+	// Conexão com o servidor
 	conn net.Conn
-	car  types.Car
+	// Carro do usuário
+	car types.Car
 	// batteryTicker *time.Ticker
 	// syncTicker    *time.Ticker
 	// batteryMutex sync.Mutex
 }
 
+// Cria e conecta um novo cliente ao servidor
 func NewCarClient() *CarClient {
-	// Conectar ao servidor
+	// Conecta ao servidor
 	conn, err := net.Dial("tcp", "localhost:8080")
 	if err != nil {
-		log.Fatal("Erro ao conectar ao servidor:", err)
+		log.Fatal("Erro ao se conectar com o servidor:", err)
 	}
 
-	// Criar client com os novos campos
+	// Novo cliente
 	c := &CarClient{
 		conn: conn,
 		car:  types.Car{},
@@ -41,33 +45,28 @@ func NewCarClient() *CarClient {
 	return c
 }
 
+// Envia uma mensagem ao servidor,
 func (c *CarClient) SendMessage(message types.Message) error {
-	// Enviar a mensagem ao servidor
+	// Marca a mensagem com o tipo de cliente que a enviou
 	message.ClientType = types.CarClientType
+	// Serializa o objeto mensagem estruturado em JSON
 	buf, err := json.Marshal(message)
 	if err != nil {
-		// Se houver um erro ao serializar a mensagem, o programa será encerrado
-		log.Fatal("Erro ao serializar a mensagem:", err)
+		return err
 	}
 
 	_, err = c.conn.Write(buf)
-	if err != nil {
-		// Se houver um erro ao enviar os dados, o programa será encerrado
-		log.Fatal("Erro ao enviar dados:", err)
-	}
 
 	return err
 }
 
+// Lê a resposta do servidor
 func (c *CarClient) ReadResponse() (types.Message, error) {
-	// Receber a resposta do servidor
 	var responseMessage types.Message
+	// Decodificador da conexão do cliente, aguarda até que receba algo
 	decoder := json.NewDecoder(c.conn)
+	// Decodifica o JSON serializado e armazena os dados no objeto responseMessage
 	err := decoder.Decode(&responseMessage)
-	if err != nil {
-		// Se houver um erro ao decodificar a resposta, o programa será encerrado
-		log.Fatal("Erro ao decodificar a resposta:", err)
-	}
 
 	return responseMessage, err
 }
@@ -75,13 +74,13 @@ func (c *CarClient) ReadResponse() (types.Message, error) {
 func main() {
 
 	client := NewCarClient()
+	// Canal para notificar quando o programa for interrompido inesperadamente
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, os.Interrupt, syscall.SIGTERM)
 
-	// Goroutine para lidar com o sinal
+	// Goroutine para lidar com a interrompção
 	go func() {
 		<-sigs
-		fmt.Println("\nCtrl+C detectado! Limpando recursos...")
 		client.SendMessage(types.Message{
 			Req: types.ExitCar,
 			Car: client.car,
@@ -90,6 +89,7 @@ func main() {
 		os.Exit(0)
 	}()
 
+	// Loop para Login
 	for {
 		car, err := HandleLogin(client.conn)
 		if err != nil {
@@ -99,6 +99,8 @@ func main() {
 			break
 		}
 	}
+
+	// Loop da aplicação
 	for {
 		// Menu para o cliente escolher o que fazer
 		var choice string
@@ -117,45 +119,60 @@ func main() {
 
 		// Processar a escolha
 		var message types.Message
-		message.ClientType = types.CarClientType
 		var err error
+		/*
+			Cada handle forma uma mensagem com as informações necessárias
+			para o servidor realizar a requisição
+		*/
 		switch choice {
 		case "1":
 			message, err = HandleRegisterCar()
 			if err != nil {
-				log.Fatal("Erro ao registrar o carro:", err)
+				fmt.Println("Erro ao registrar o carro:", err)
+				// Volta ao inicio do loop em caso de erro
+				continue
 			}
 		case "2":
 			message, err = HandleGetRecommendedStation(client.car)
 			if err != nil {
-				log.Fatal("Erro ao retornar Estação:", err)
+				fmt.Println("Erro ao retornar Estação:", err)
+				continue
 			}
 		case "3":
 			message, err = HandleReserveStation(client.car)
 			if err != nil {
-				log.Fatal("Erro ao registrar o carro:", err)
+				fmt.Println("Erro ao registrar o carro:", err)
+				continue
 			}
 		case "4":
 			message, err = HandleGetReservedStation(client.car)
 			if err != nil {
-				log.Fatal("Erro ao retornar a estação:", err)
+				fmt.Println("Erro ao retornar a estação:", err)
+				continue
 			}
 		case "5":
 			message, err = HandleStartRecharge(client.car)
 			if err != nil {
-				log.Fatal("Erro ao iniciar a recarga:", err)
+				fmt.Println("Erro ao iniciar a recarga:", err)
+				continue
 			}
 		case "6":
 			message, err = HandlePayRecharge(client.car)
 			if err != nil {
-				log.Fatal("Erro ao registrar o carro:", err)
+				fmt.Println("Erro ao registrar o carro:", err)
+				continue
 			}
 		case "7":
 			message, err = HandleListActiveStations()
 			if err != nil {
-				log.Fatal("Erro ao listar as estações:", err)
+				fmt.Println("Erro ao listar as estações:", err)
+				continue
 			}
 		case "8":
+			/*
+				Lista o histórico de pagamentos, não utiliza requisições
+				para o servidor
+			*/
 			for _, payment := range client.car.PaymentHistory {
 				fmt.Printf(`
 ID do Pagamento: %d
@@ -167,6 +184,10 @@ Data: %s
 			}
 			continue
 		case "9":
+			/*
+				Antes de sair, envia uma mensagem para que o servidor
+				apague qualquer informação em requisições não finalizadas
+			*/
 			message = types.Message{
 				Req: types.ExitCar,
 				Car: client.car,
@@ -175,17 +196,25 @@ Data: %s
 			fmt.Println("Opção inválida.")
 			continue
 		}
-		message.ClientType = types.CarClientType
+
+		// Envia a requisição ao servidor
 		err = client.SendMessage(message)
 		if err != nil {
-			log.Fatal("Erro ao enviar mensagem:", err)
+			fmt.Println("Erro ao enviar mensagem ao servidor:", err)
+			fmt.Println("Tente novamente")
+			continue
 		}
 
+		// Recebe a resposta do servidor
 		responseMessage := types.Message{}
 		responseMessage, err = client.ReadResponse()
 		if err != nil {
-			log.Fatal("Erro ao receber resposta:", err)
+			fmt.Println("Erro receber a resposta do servidor:", err)
+			fmt.Println("Tente novamente")
+			continue
 		}
+
+		// Verifica a requisição da resposta para trata-la de acordo
 		switch responseMessage.Req {
 		case types.RegisterCar:
 			_, err = HandleRegisterCarResponse(responseMessage)
@@ -228,18 +257,14 @@ Data: %s
 				client.car = car
 			}
 		case types.ListActiveStations:
-			car, err := HandleListActiveStationsResponse(responseMessage)
+			_, err := HandleListActiveStationsResponse(responseMessage)
 			if err != nil {
 				fmt.Println("Erro:", err)
-			} else {
-				client.car = car
 			}
 		case types.PaymentHistory:
-			car, err := HandlePaymentHistoryResponse(responseMessage)
+			_, err := HandlePaymentHistoryResponse(responseMessage)
 			if err != nil {
 				fmt.Println("Erro:", err)
-			} else {
-				client.car = car
 			}
 		case types.GetReservedStation:
 			car, err := HandleStartCarMovement(client, responseMessage)
