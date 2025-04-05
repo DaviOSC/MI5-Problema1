@@ -5,6 +5,7 @@ import (
 )
 
 const CarSpeed = 40
+const RechargeTime = 20
 
 type Payment struct {
 	PaymentID int       `json:"payment_id"`
@@ -71,6 +72,8 @@ const (
 	PaymentHistory
 	GetStationInfo
 	StationUpdate
+	ExitStation
+	ExitCar
 )
 
 var RequestsNames = map[Requests]string{
@@ -92,6 +95,8 @@ var RequestsNames = map[Requests]string{
 	PaymentHistory:        "payment_history",
 	GetStationInfo:        "get_station_info",
 	StationUpdate:         "station_update",
+	ExitStation:           "exit_station",
+	ExitCar:               "exit_car",
 }
 
 type ResponseStatus int

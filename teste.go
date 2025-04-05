@@ -2,7 +2,10 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 )
 
 var mu sync.Mutex
@@ -21,9 +24,8 @@ func teste2() {
 }
 
 func main() {
-	mapa := map[string]int{"a": 1, "b": 2}
-	for k, v := range mapa {
-		fmt.Println(k, v)
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+	for {
 	}
-
 }

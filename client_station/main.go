@@ -6,6 +6,9 @@ import (
 	"log"
 	"main/types"
 	"net"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 type StationClient struct {
@@ -39,15 +42,25 @@ func (c *StationClient) ReadResponse() (types.Message, error) {
 	if err != nil {
 		log.Fatal("Erro ao decodificar a resposta:", err)
 	}
-	fmt.Printf("%d", responseMessage.Station.StationID)
 	return responseMessage, err
 }
 
 func main() {
 	client := NewStationClient()
-	defer client.conn.Close()
-	stationChosen := false
 
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-sigs
+		fmt.Println("\nCtrl+C detectado! Limpando recursos...")
+		client.SendMessage(types.Message{
+			Req:     types.ExitStation,
+			Station: client.station,
+		})
+		client.conn.Close()
+		os.Exit(0)
+	}()
+	stationChosen := false
 	for {
 		// Menu para o cliente escolher o que fazer
 		var choice string
@@ -57,6 +70,7 @@ func main() {
 2 - Escolher uma Estação
 3 - Sair`)
 		} else {
+			fmt.Printf("=============================================================\n")
 			fmt.Println("Estação iniciada, para sair digite '1'.")
 			go client.readLoop(client.conn)
 		}
@@ -147,7 +161,7 @@ func main() {
 				}
 			case "3":
 				fmt.Println("Saindo...")
-				message.ClientType = types.StationClientType
+				message = client.HandleExit()
 				err = client.SendMessage(message)
 				if err != nil {
 					fmt.Println("Erro ao enviar mensagem:", err)
@@ -161,6 +175,12 @@ func main() {
 		} else {
 			if choice == "1" {
 				fmt.Println("Saindo...")
+				message = client.HandleExit()
+				err = client.SendMessage(message)
+				if err != nil {
+					fmt.Println("Erro ao enviar mensagem:", err)
+					continue
+				}
 				return
 			} else {
 				fmt.Println("Opção inválida.")
@@ -168,6 +188,7 @@ func main() {
 			}
 		}
 	}
+
 }
 
 func (c *StationClient) HandleRequest(message types.Message) types.Message {

@@ -7,7 +7,6 @@ import (
 	"math"
 	"net"
 	"os"
-	"slices"
 )
 
 func (s *Server) SendResponse(conn net.Conn, responseMessage types.Message) error {
@@ -129,11 +128,9 @@ func (s *Server) getStationFromFile(id int) (types.Station, error) {
 }
 
 func (s *Server) getBestStation(car types.Car) (types.Station, error) {
-	// s.sessionsMu.Lock()
-	// defer s.sessionsMu.Unlock()
 
 	var bestStation types.Station
-	minDistance := math.MaxFloat64
+	minScore := math.MaxFloat64
 
 	for stationID, conn := range s.connectedStations {
 		station, err := s.GetStationInfo(stationID, conn)
@@ -141,63 +138,66 @@ func (s *Server) getBestStation(car types.Car) (types.Station, error) {
 			fmt.Printf("Erro ao obter informações da estação %d: %v\n", stationID, err)
 			continue
 		}
+
 		distance := math.Abs(float64(car.CoordX-station.CoordX)) + math.Abs(float64(car.CoordY-station.CoordY))
-		if distance < minDistance {
-			minDistance = distance
+		waitTime := float64(station.CarsWaiting) * types.RechargeTime
+		score := (distance * types.CarSpeed) + waitTime
+		if score < minScore {
+			minScore = score
 			bestStation = station
 		}
 	}
 
-	if minDistance == math.MaxFloat64 {
+	if minScore == math.MaxFloat64 {
 		return types.Station{}, fmt.Errorf("Nenhuma estação disponível")
 	}
 
-	//TODO outros critérios de escolha da estação
 	return bestStation, nil
 }
 
-func (s *Server) CloseConnection(message types.Message) {
-	fmt.Println(message.ClientType)
-	if message.ClientType == types.CarClientType {
-		reservedStationID := message.Car.ReservedStation
-		fmt.Printf("Carro %d desconectado do servidor", message.Car.CarID)
-		if reservedStationID != 0 {
-			reservedStation, err := s.getStationFromFile(reservedStationID)
-			if err != nil {
-				fmt.Println("Erro em CloseConnection (Carro):", err)
-				return
-			}
+// func (s *Server) CloseConnection(conn net.Conn) {
+// 	fmt.Println("========== Fechando conexão com o cliente ==========")
+// 	fmt.Println(message.ClientType.String())
+// 	if message.ClientType == types.CarClientType {
+// 		reservedStationID := message.Car.ReservedStation
+// 		fmt.Printf("Carro %d desconectado do servidor", message.Car.CarID)
+// 		if reservedStationID != 0 {
+// 			reservedStation, err := s.getStationFromFile(reservedStationID)
+// 			if err != nil {
+// 				fmt.Println("Erro em CloseConnection (Carro):", err)
+// 				return
+// 			}
 
-			reservedStation.CarsWaiting -= 1
-			index := slices.Index(reservedStation.CarList, message.Car.CarID)
-			if index >= 0 {
-				reservedStation.CarList = slices.Delete(reservedStation.CarList, index, index+1)
-			}
-			if reservedStation.InUseBy == message.Car.CarID {
-				reservedStation.InUseBy = 0
-			}
-			message.Car.RecomendedStation = 0
-			message.Car.ReservedStation = 0
-			s.saveCarToFile(message.Car)
-			s.saveStationToFile(reservedStation)
-		}
-	} else if message.ClientType == types.StationClientType {
+// 			reservedStation.CarsWaiting -= 1
+// 			index := slices.Index(reservedStation.CarList, message.Car.CarID)
+// 			if index >= 0 {
+// 				reservedStation.CarList = slices.Delete(reservedStation.CarList, index, index+1)
+// 			}
+// 			if reservedStation.InUseBy == message.Car.CarID {
+// 				reservedStation.InUseBy = 0
+// 			}
+// 			message.Car.RecomendedStation = 0
+// 			message.Car.ReservedStation = 0
+// 			s.saveCarToFile(message.Car)
+// 			s.saveStationToFile(reservedStation)
+// 		}
+// 	} else if message.ClientType == types.StationClientType {
 
-		fmt.Printf("Estação %d desconectada\n", message.Station.StationID)
+// 		fmt.Printf("Estação %d desconectada\n", message.Station.StationID)
 
-		s.sessionsMu.Lock()
-		delete(s.connectedStations, message.Station.StationID)
-		s.sessionsMu.Unlock()
+// 		s.sessionsMu.Lock()
+// 		delete(s.connectedStations, message.Station.StationID)
+// 		s.sessionsMu.Unlock()
 
-		err := s.saveStationToFile(message.Station)
-		if err != nil {
-			fmt.Println("Erro em CloseConnection (Estação):", err)
-		}
+// 		err := s.saveStationToFile(message.Station)
+// 		if err != nil {
+// 			fmt.Println("Erro em CloseConnection (Estação):", err)
+// 		}
 
-	} else {
-		fmt.Println("Entidade desconhecida ao tentar fechar conexão.")
-	}
-}
+// 	} else {
+// 		fmt.Println("Entidade desconhecida ao tentar fechar conexão.")
+// 	}
+// }
 
 func (s *Server) GetStationInfo(id int, conn net.Conn) (types.Station, error) {
 	message := types.Message{Req: types.StationUpdate}

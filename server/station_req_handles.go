@@ -22,6 +22,22 @@ func (s *Server) HandleRegisterStationFromStation(message types.Message, conn ne
 	return responseMessage, conn
 }
 
+func (s *Server) HandleExitStation(message types.Message, conn net.Conn) (types.Message, net.Conn) {
+	responseMessage := types.Message{Req: types.ExitStation}
+	fmt.Printf("Estação %d desconectada\n", message.Station.StationID)
+
+	s.sessionsMu.Lock()
+	delete(s.connectedStations, message.Station.StationID)
+	s.sessionsMu.Unlock()
+
+	err := s.saveStationToFile(message.Station)
+	if err != nil {
+		fmt.Println("Erro em CloseConnection (Estação):", err)
+	}
+	responseMessage.Status = types.Success
+	return responseMessage, conn
+}
+
 func (s *Server) HandleListStationsFromStation(message types.Message, conn net.Conn) (types.Message, net.Conn) {
 	stations, err := s.listStationsFromFile()
 	responseMessage := types.Message{Req: types.ListStations}

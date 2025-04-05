@@ -119,6 +119,13 @@ func (c *StationClient) HandleReserveStation(message types.Message) types.Messag
 	return responseMessage
 }
 
+func (c *StationClient) HandleExit() types.Message {
+	return types.Message{
+		Req:     types.ExitStation,
+		Station: c.station,
+	}
+}
+
 func (c *StationClient) HandleStartRecharge(message types.Message) types.Message {
 	responseMessage := types.Message{
 		Req:     types.StartRecharge,
@@ -126,9 +133,9 @@ func (c *StationClient) HandleStartRecharge(message types.Message) types.Message
 		Station: c.station,
 		Car:     message.Car,
 	}
-	if message.Car.PaidReservedStation {
+	if !message.Car.PaidReservedStation {
 		responseMessage.Status = types.Error
-		responseMessage.Err = "é necessario pagar antes de iniciar a recarga"
+		responseMessage.Err = "É necessario pagar antes de iniciar a recarga"
 		return responseMessage
 	} else {
 		return responseMessage
@@ -165,7 +172,7 @@ func (c *StationClient) HandlePayRecharge(message types.Message) types.Message {
 
 	if message.Car.CoordX != c.station.CoordX || message.Car.CoordY != c.station.CoordY {
 		responseMessage.Status = types.Error
-		responseMessage.Err = "carro não está na estação"
+		responseMessage.Err = "Carro não está na estação"
 		return responseMessage
 	}
 
@@ -177,7 +184,7 @@ func (c *StationClient) HandlePayRecharge(message types.Message) types.Message {
 
 	if c.station.CarList[0] != message.Car.CarID {
 		responseMessage.Status = types.Error
-		responseMessage.Err = "carro não é o proximo da fila"
+		responseMessage.Err = "Carro não é o proximo da fila"
 		return responseMessage
 	}
 	paymentIDs += 1
@@ -196,7 +203,7 @@ func (c *StationClient) HandlePayRecharge(message types.Message) types.Message {
 		responseMessage.Car = c.DoPaymentCreditCard(message.Car, payment)
 	} else {
 		responseMessage.Status = types.Error
-		responseMessage.Err = "nenhuma forma de pagamento cadastrada"
+		responseMessage.Err = "Nenhuma forma de pagamento cadastrada"
 		return responseMessage
 	}
 

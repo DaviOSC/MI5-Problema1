@@ -84,7 +84,8 @@ func (s *Server) HandleRequestCar(message types.Message, conn net.Conn) (types.M
 		return s.HandleStartRecharge(message, conn)
 	case types.CarUpdate:
 		return s.HandleCarUpdate(message, conn)
-
+	case types.ExitCar:
+		return s.HandleExitCar(message, conn)
 	default:
 		return types.Message{Status: types.Error, Err: "requisição inválida."}, conn
 	}
@@ -111,6 +112,8 @@ func (s *Server) HandleRequestStation(message types.Message, conn net.Conn) (typ
 		return s.HandleStartRechargeFromStation(message, conn)
 	case types.StationUpdate:
 		return s.HandleStationUpdate(message, conn)
+	case types.ExitStation:
+		return s.HandleExitStation(message, conn)
 	default:
 		return types.Message{Status: types.Error, Err: "requisição inválida."}, conn
 	}
@@ -125,14 +128,12 @@ func (s *Server) readLoop(conn net.Conn) {
 		decoder := json.NewDecoder(conn)
 		message := types.Message{}
 		var err = decoder.Decode(&message)
-		fmt.Printf("++++++++++++++++++++++++\n")
-		fmt.Println(message.ClientType)
 
 		if err != nil {
 			// Verificar se o erro é EOF (cliente desconectou)
 			if err == io.EOF {
 				fmt.Println("Cliente desconectado:", conn.RemoteAddr())
-				responseMessage = message
+				fmt.Println("clientType:", message.ClientType)
 				break
 			}
 			// Outros erros são exibidos
@@ -156,9 +157,6 @@ func (s *Server) readLoop(conn net.Conn) {
 			}
 		}
 	}
-	fmt.Printf("-------------------\n")
-	fmt.Println(responseMessage.ClientType)
-	defer s.CloseConnection(responseMessage)
 }
 func main() {
 	server := NewServer(":8080")

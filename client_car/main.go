@@ -6,7 +6,9 @@ import (
 	"log"
 	"main/types"
 	"net"
-	"sync"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 type CarClient struct {
@@ -14,7 +16,7 @@ type CarClient struct {
 	car  types.Car
 	// batteryTicker *time.Ticker
 	// syncTicker    *time.Ticker
-	batteryMutex sync.Mutex
+	// batteryMutex sync.Mutex
 }
 
 func NewCarClient() *CarClient {
@@ -73,7 +75,20 @@ func (c *CarClient) ReadResponse() (types.Message, error) {
 func main() {
 
 	client := NewCarClient()
-	defer client.conn.Close()
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, os.Interrupt, syscall.SIGTERM)
+
+	// Goroutine para lidar com o sinal
+	go func() {
+		<-sigs
+		fmt.Println("\nCtrl+C detectado! Limpando recursos...")
+		client.SendMessage(types.Message{
+			Req: types.ExitCar,
+			Car: client.car,
+		})
+		client.conn.Close()
+		os.Exit(0)
+	}()
 
 	for {
 		car, err := HandleLogin(client.conn)
@@ -84,7 +99,6 @@ func main() {
 			break
 		}
 	}
-
 	for {
 		// Menu para o cliente escolher o que fazer
 		var choice string
@@ -142,12 +156,21 @@ func main() {
 				log.Fatal("Erro ao listar as estações:", err)
 			}
 		case "8":
-			message, err = HandlePaymentHistory(client.car)
-			if err != nil {
-				log.Fatal("Erro ao listar o histórico de pagamentos:", err)
+			for _, payment := range client.car.PaymentHistory {
+				fmt.Printf(`
+ID do Pagamento: %d
+ID do Carro: %d 
+ID do Posto: %d
+Valor: %d
+Data: %s
+`, payment.PaymentID, payment.From, payment.To, payment.Value, payment.TimeStamp)
 			}
+			continue
 		case "9":
-			log.Fatal("Saindo...")
+			message = types.Message{
+				Req: types.ExitCar,
+				Car: client.car,
+			}
 		default:
 			fmt.Println("Opção inválida.")
 			continue
@@ -225,6 +248,9 @@ func main() {
 			} else {
 				client.car = car
 			}
+		case types.ExitCar:
+			fmt.Println("Saindo")
+			return
 		default:
 			fmt.Println("Requisição da resposta inválida.")
 			continue

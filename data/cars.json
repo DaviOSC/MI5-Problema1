@@ -8,7 +8,7 @@
     "battery_level": 100,
     "recomended_station": 0,
     "reserved_station": 0,
-    "paid_reserved_station": true,
+    "paid_reserved_station": false,
     "pix_code": 401,
     "credit_card_number": 0,
     "payment_history": [
@@ -17,7 +17,7 @@
         "from": 10,
         "to": 401,
         "value": 100,
-        "timestamp": "2025-04-04T21:22:16.649536673-03:00"
+        "timestamp": "2025-04-05T00:42:13.02886399-03:00"
       }
     ]
   },
@@ -39,14 +39,14 @@
     "car_id": 3,
     "user": "Dk",
     "password": "dk",
-    "coord_x": 25,
-    "coord_y": 50,
+    "coord_x": 50,
+    "coord_y": 100,
     "battery_level": 16,
     "recomended_station": 0,
     "reserved_station": 0,
     "paid_reserved_station": false,
     "pix_code": 0,
-    "credit_card_number": 0,
+    "credit_card_number": 15,
     "payment_history": null
   },
   {

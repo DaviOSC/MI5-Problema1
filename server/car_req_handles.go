@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"main/types"
+	"maps"
 	"net"
+	"slices"
 )
 
 func (s *Server) HandleRegisterCar(message types.Message, conn net.Conn) (types.Message, net.Conn) {
@@ -78,7 +80,7 @@ func (s *Server) HandleReserveStation(message types.Message, conn net.Conn) (typ
 	station := types.Station{}
 	stationID := message.Car.RecomendedStation
 
-	// Verifica se o carro possue uma estação recomendada
+	// Verifica se o carro possui uma estação recomendada
 	if stationID == 0 {
 		station, err = s.getBestStation(message.Car)
 		if err != nil {
@@ -127,7 +129,9 @@ Então envia mensagem para a estação reservada
 Se não, retorna erro
 */
 func (s *Server) HandlePayRecharge(message types.Message, conn net.Conn) (types.Message, net.Conn) {
-	responseMessage := types.Message{Req: types.PayRecharge, Status: types.Success}
+	responseMessage := types.Message{
+		Req:    types.PayRecharge,
+		Status: types.Success}
 	if message.Car.ReservedStation == 0 {
 		responseMessage.Status = types.Error
 		responseMessage.Err = "reserve a estação antes de pagar"
@@ -136,16 +140,6 @@ func (s *Server) HandlePayRecharge(message types.Message, conn net.Conn) (types.
 
 	return message, s.connectedStations[message.Car.ReservedStation]
 }
-
-// func HandlePaymentHistory(message types.Message, conn net.Conn) (types.Message, net.Conn) {
-// 	car := message.Car
-// 	responseMessage := types.Message{Req: types.PaymentHistory}
-
-// 	payments := []types.Payment{}
-// 	responseMessage.
-// 	return responseMessage
-
-// }
 
 func (s *Server) HandleGetRecommendedStation(message types.Message, conn net.Conn) (types.Message, net.Conn) {
 	car := message.Car
@@ -212,6 +206,7 @@ func (s *Server) HandleRechargeComplete(message types.Message, conn net.Conn) (t
 }
 
 func (s *Server) HandleStartRecharge(message types.Message, conn net.Conn) (types.Message, net.Conn) {
+	fmt.Println("Aqui, reservedStation: ", message.Car.ReservedStation)
 	if message.Car.ReservedStation == 0 {
 		return types.Message{
 			Status: types.Error,
@@ -236,4 +231,32 @@ func (s *Server) HandleCarUpdate(message types.Message, conn net.Conn) (types.Me
 	}
 
 	return types.Message{Status: types.Success}, conn
+}
+
+func (s *Server) HandleExitCar(message types.Message, conn net.Conn) (types.Message, net.Conn) {
+	reservedStationID := message.Car.ReservedStation
+	fmt.Printf("Carro %d desconectado do servidor", message.Car.CarID)
+	if reservedStationID != 0 {
+		reservedStation, err := s.getStationFromFile(reservedStationID)
+		if err != nil {
+			fmt.Println("Erro em HandleExitCar:", err)
+		}
+
+		reservedStation.CarsWaiting -= 1
+		index := slices.Index(reservedStation.CarList, message.Car.CarID)
+		if index >= 0 {
+			reservedStation.CarList = slices.Delete(reservedStation.CarList, index, index+1)
+		}
+		if reservedStation.InUseBy == message.Car.CarID {
+			reservedStation.InUseBy = 0
+		}
+		message.Car.RecomendedStation = 0
+		message.Car.ReservedStation = 0
+		maps.DeleteFunc(s.loggedCars, func(k int, v net.Conn) bool {
+			return k == message.Car.CarID
+		})
+		s.saveCarToFile(message.Car)
+		s.saveStationToFile(reservedStation)
+	}
+	return message, conn
 }
