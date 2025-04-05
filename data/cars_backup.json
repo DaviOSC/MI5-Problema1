@@ -34,10 +34,10 @@
     "coord_x": 25,
     "coord_y": 50,
     "battery_level": 16,
-    "recomended_station": 1,
+    "recomended_station": 0,
     "reserved_station": 0,
     "paid_reserved_station": false,
-    "pix_code": 0,
+    "pix_code": 7,
     "credit_card_number": 0,
     "payment_history": null
   }

@@ -159,8 +159,8 @@ func main() {
 			for _, payment := range client.car.PaymentHistory {
 				fmt.Printf(`
 ID do Pagamento: %d
-ID do Carro: %d 
-ID do Posto: %d
+ID do Posto: %d 
+ID do Carro: %d
 Valor: %d
 Data: %s
 `, payment.PaymentID, payment.From, payment.To, payment.Value, payment.TimeStamp)
