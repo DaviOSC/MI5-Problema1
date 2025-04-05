@@ -125,10 +125,14 @@ func (s *Server) readLoop(conn net.Conn) {
 		decoder := json.NewDecoder(conn)
 		message := types.Message{}
 		var err = decoder.Decode(&message)
+		fmt.Printf("++++++++++++++++++++++++\n")
+		fmt.Println(message.ClientType)
+
 		if err != nil {
 			// Verificar se o erro é EOF (cliente desconectou)
 			if err == io.EOF {
 				fmt.Println("Cliente desconectado:", conn.RemoteAddr())
+				responseMessage = message
 				break
 			}
 			// Outros erros são exibidos
@@ -152,6 +156,8 @@ func (s *Server) readLoop(conn net.Conn) {
 			}
 		}
 	}
+	fmt.Printf("-------------------\n")
+	fmt.Println(responseMessage.ClientType)
 	defer s.CloseConnection(responseMessage)
 }
 func main() {

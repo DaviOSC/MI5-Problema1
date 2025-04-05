@@ -105,112 +105,26 @@ func (s *Server) HandleListActiveStationsFromStation(message types.Message, conn
 }
 
 func (s *Server) HandlePayRechargeFromStation(message types.Message, conn net.Conn) (types.Message, net.Conn) {
-	responseMessage := types.Message{Req: types.PayRecharge, Status: types.Success}
-	stationID := message.Car.ReservedStation
-	station, err := s.getStationFromFile(stationID)
-	if err != nil {
-		responseMessage.Status = types.Error
-		fmt.Printf("Estação não encontrada, na requisição PayRecharge, para a estação de id %d\n", stationID)
-		return responseMessage, conn
+	if message.Status == types.Success {
+		s.saveCarToFile(message.Car)
+		s.saveStationToFile(message.Station)
 	}
-	if message.Car.ReservedStation == 0 {
-		responseMessage.Status = types.Error
-		responseMessage.Err = "reserve a estação antes de pagar"
-		return responseMessage, conn
-	}
-
-	if station.InUseBy == 0 && station.CarList[0] == message.Car.CarID {
-		station.InUseBy = message.Car.CarID
-		station.CarsWaiting -= 1
-		station.CarList = station.CarList[1:]
-		err := s.saveStationToFile(station)
-		if err != nil {
-			responseMessage.Status = types.Error
-			fmt.Printf("Erro ao salvar a estação, na requisição PayRecharge, para a estação de id %d\n", stationID)
-			return responseMessage, conn
-		}
-		// TODO simular pagamento
-		responseMessage.Car = message.Car
-		err = s.saveCarToFile(message.Car)
-		if err != nil {
-			responseMessage.Status = types.Error
-			fmt.Printf("Erro ao salvar o carro, na requisição PayRecharge, para o carro de id %d\n", message.Car.CarID)
-			return responseMessage, conn
-		}
-	} else {
-		responseMessage.Status = types.Error
-		fmt.Printf("Estação não disponível, na requisição PayRecharge, para a estação de id %d\n", stationID)
-	}
-
-	return responseMessage, conn
+	return message, s.loggedCars[message.Car.CarID]
 }
 
 func (s *Server) HandleRechargeCompleteFromStation(message types.Message, conn net.Conn) (types.Message, net.Conn) {
-	responseMessage := types.Message{Req: types.RechargeComplete, Status: types.Success}
-	car, stationID := message.Car, message.Car.ReservedStation
-
-	// Obter a estação do arquivo
-	station, err := s.getStationFromFile(stationID)
-	if err != nil {
-		responseMessage.Status = types.Error
-		fmt.Printf("Estação não encontrada para o ID %d\n", stationID)
-		return responseMessage, conn
+	if message.Status == types.Success {
+		s.saveCarToFile(message.Car)
+		s.saveStationToFile(message.Station)
 	}
-
-	// Validar se a estação está em uso pelo carro correto
-	if station.InUseBy != car.CarID {
-		responseMessage.Status = types.Error
-		fmt.Printf("Estação %d não está em uso pelo carro %d\n", stationID, car.CarID)
-		return responseMessage, conn
-	}
-	// Atualizar os dados do carro e da estação
-	car.ReservedStation, car.RecomendedStation = 0, 0
-	station.InUseBy = 0
-	car.BatteryLevel = 100
-
-	err = s.saveStationToFile(station)
-	if err != nil {
-		responseMessage.Status = types.Error
-		fmt.Printf("Erro ao salvar a estação %d\n", station.StationID)
-		return responseMessage, conn
-	}
-
-	err = s.saveCarToFile(car)
-	if err != nil {
-		responseMessage.Status = types.Error
-		fmt.Printf("Erro ao salvar o carro %d\n", car.CarID)
-		return responseMessage, conn
-	}
-
-	fmt.Printf("Recarga concluída para o carro %d na estação %d.\n", car.CarID, station.StationID)
-	responseMessage.Car = car
-	return responseMessage, conn
+	return message, s.loggedCars[message.Car.CarID]
 }
 func (s *Server) HandleStartRechargeFromStation(message types.Message, conn net.Conn) (types.Message, net.Conn) {
-	responseMessage := types.Message{Req: types.StartRecharge, Status: types.Success}
-	car, stationID := message.Car, message.Car.ReservedStation
-
-	// Obter a estação do arquivo
-	station, err := s.getStationFromFile(stationID)
-	if err != nil {
-		responseMessage.Status = types.Error
-		fmt.Printf("Estação não encontrada para o ID %d\n", stationID)
-		return responseMessage, conn
+	if message.Status == types.Success {
+		s.saveCarToFile(message.Car)
+		s.saveStationToFile(message.Station)
 	}
-
-	// Marcar a estação como em uso pelo carro
-	station.InUseBy = car.CarID
-	err = s.saveStationToFile(station)
-	if err != nil {
-		responseMessage.Status = types.Error
-		fmt.Printf("Erro ao salvar a estação %d\n", stationID)
-		return responseMessage, conn
-	}
-
-	fmt.Printf("Recarga iniciada para o carro %d na estação %d.\n", car.CarID, station.StationID)
-	//TODO o cliente ainda consegue enviar mensagens no terminal no periodo. elas são processadas em sequencia apos o tempo
-	responseMessage.Car = car
-	return responseMessage, conn
+	return message, s.loggedCars[message.Car.CarID]
 }
 
 func (s *Server) HandleStationUpdate(message types.Message, conn net.Conn) (types.Message, net.Conn) {

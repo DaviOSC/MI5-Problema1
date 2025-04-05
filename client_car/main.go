@@ -41,6 +41,7 @@ func NewCarClient() *CarClient {
 
 func (c *CarClient) SendMessage(message types.Message) error {
 	// Enviar a mensagem ao servidor
+	message.ClientType = types.CarClientType
 	buf, err := json.Marshal(message)
 	if err != nil {
 		// Se houver um erro ao serializar a mensagem, o programa será encerrado
@@ -102,6 +103,7 @@ func main() {
 
 		// Processar a escolha
 		var message types.Message
+		message.ClientType = types.CarClientType
 		var err error
 		switch choice {
 		case "1":
@@ -110,10 +112,9 @@ func main() {
 				log.Fatal("Erro ao registrar o carro:", err)
 			}
 		case "2":
-			fmt.Print(client.car.CarID)
 			message, err = HandleGetRecommendedStation(client.car)
 			if err != nil {
-				log.Fatal("Erro ao registrar o carro:", err)
+				log.Fatal("Erro ao retornar Estação:", err)
 			}
 		case "3":
 			message, err = HandleReserveStation(client.car)
@@ -162,7 +163,6 @@ func main() {
 		if err != nil {
 			log.Fatal("Erro ao receber resposta:", err)
 		}
-
 		switch responseMessage.Req {
 		case types.RegisterCar:
 			_, err = HandleRegisterCarResponse(responseMessage)
@@ -219,10 +219,12 @@ func main() {
 				client.car = car
 			}
 		case types.GetReservedStation:
-			if responseMessage.Status == types.Success {
-				client.car = responseMessage.Car
+			car, err := HandleStartCarMovement(client, responseMessage)
+			if err != nil {
+				fmt.Println("Erro:", err)
+			} else {
+				client.car = car
 			}
-			startCarMovement(client, responseMessage.Station)
 		default:
 			fmt.Println("Requisição da resposta inválida.")
 			continue

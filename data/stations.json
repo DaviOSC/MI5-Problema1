@@ -13,8 +13,11 @@
     "station_id": 10,
     "coord_x": 50,
     "coord_y": 100,
-    "car_list": [],
-    "cars_waiting": 0,
+    "car_list": [
+      401,
+      401
+    ],
+    "cars_waiting": 2,
     "in_use": 0
   },
   {
@@ -27,8 +30,8 @@
   },
   {
     "station_id": 2,
-    "coord_x": 3,
-    "coord_y": 3,
+    "coord_x": 2,
+    "coord_y": 2,
     "car_list": null,
     "cars_waiting": 0,
     "in_use": 0

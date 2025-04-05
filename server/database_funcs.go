@@ -149,7 +149,7 @@ func (s *Server) getBestStation(car types.Car) (types.Station, error) {
 	}
 
 	if minDistance == math.MaxFloat64 {
-		return types.Station{}, fmt.Errorf("nenhuma estação disponível")
+		return types.Station{}, fmt.Errorf("Nenhuma estação disponível")
 	}
 
 	//TODO outros critérios de escolha da estação
@@ -157,10 +157,10 @@ func (s *Server) getBestStation(car types.Car) (types.Station, error) {
 }
 
 func (s *Server) CloseConnection(message types.Message) {
-	fmt.Printf("Carro desconectado: ID %d\n", message.Car.CarID)
-	if message.Car.CarID != 0 {
+	fmt.Println(message.ClientType)
+	if message.ClientType == types.CarClientType {
 		reservedStationID := message.Car.ReservedStation
-		fmt.Printf("Carro %d desconectado da estação %d\n", message.Car.CarID, reservedStationID)
+		fmt.Printf("Carro %d desconectado do servidor", message.Car.CarID)
 		if reservedStationID != 0 {
 			reservedStation, err := s.getStationFromFile(reservedStationID)
 			if err != nil {
@@ -181,7 +181,8 @@ func (s *Server) CloseConnection(message types.Message) {
 			s.saveCarToFile(message.Car)
 			s.saveStationToFile(reservedStation)
 		}
-	} else if message.Station.StationID != 0 {
+	} else if message.ClientType == types.StationClientType {
+
 		fmt.Printf("Estação %d desconectada\n", message.Station.StationID)
 
 		s.sessionsMu.Lock()

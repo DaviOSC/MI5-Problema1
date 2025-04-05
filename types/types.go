@@ -1,27 +1,32 @@
 package types
 
+import (
+	"time"
+)
+
 const CarSpeed = 40
 
 type Payment struct {
-	PaymentID int `json:"payment_id"`
-	From      int `json:"from"` // CarID que pagou a estação
-	To        int `json:"to"`   // StationID que recebeu o pagamento
-	Value     int `json:"value"`
-	TimeStamp int `json:"timestamp"`
+	PaymentID int       `json:"payment_id"`
+	From      int       `json:"from"` // CarID que pagou a estação
+	To        int       `json:"to"`   // StationID que recebeu o pagamento
+	Value     int       `json:"value"`
+	TimeStamp time.Time `json:"timestamp"`
 }
 
 type Car struct {
-	CarID             int       `json:"car_id"`
-	User              string    `json:"user"`
-	Password          string    `json:"password"`
-	CoordX            int       `json:"coord_x"`
-	CoordY            int       `json:"coord_y"`
-	BatteryLevel      int       `json:"battery_level"`      // 0-100
-	RecomendedStation int       `json:"recomended_station"` // StationID
-	ReservedStation   int       `json:"reserved_station"`   // StationID
-	PixCode           int       `json:"pix_code"`
-	CreditCardNumber  int       `json:"credit_card_number"`
-	PaymentHistory    []Payment `json:"payment_history"` // Slice de PaymentID
+	CarID               int       `json:"car_id"`
+	User                string    `json:"user"`
+	Password            string    `json:"password"`
+	CoordX              int       `json:"coord_x"`
+	CoordY              int       `json:"coord_y"`
+	BatteryLevel        int       `json:"battery_level"`      // 0-100
+	RecomendedStation   int       `json:"recomended_station"` // StationID
+	ReservedStation     int       `json:"reserved_station"`   // StationID
+	PaidReservedStation bool      `json:"paid_reserved_station"`
+	PixCode             int       `json:"pix_code"`
+	CreditCardNumber    int       `json:"credit_card_number"`
+	PaymentHistory      []Payment `json:"payment_history"` // Slice de PaymentID
 }
 
 type Station struct {

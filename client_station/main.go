@@ -13,6 +13,8 @@ type StationClient struct {
 	station types.Station
 }
 
+var paymentIDs int = 0
+
 func (c *StationClient) SendMessage(message types.Message) error {
 	// Enviar a mensagem ao servidor
 	message.ClientType = types.StationClientType
@@ -62,6 +64,7 @@ func main() {
 
 		// Processar a escolha
 		var message types.Message
+		message.ClientType = types.StationClientType
 		var err error
 		if !stationChosen {
 			switch choice {
@@ -144,6 +147,12 @@ func main() {
 				}
 			case "3":
 				fmt.Println("Saindo...")
+				message.ClientType = types.StationClientType
+				err = client.SendMessage(message)
+				if err != nil {
+					fmt.Println("Erro ao enviar mensagem:", err)
+					continue
+				}
 				return
 			default:
 				fmt.Println("Opção inválida.")

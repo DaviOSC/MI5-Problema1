@@ -166,8 +166,8 @@ func HandlePaymentHistoryResponse(responseMessage types.Message) (types.Car, err
 De (CarID): %d
 Para (StationID): %d
 Valor: %d
-Timestamp: %d`, payment.PaymentID, payment.From, payment.To,
-				payment.Value, payment.TimeStamp,
+Timestamp: %s`, payment.PaymentID, payment.From, payment.To,
+				payment.Value, payment.TimeStamp.String(),
 			)
 		}
 		return responseMessage.Car, nil
@@ -187,25 +187,25 @@ Coordenadas: (x: %d, y: %d)`,
 		fmt.Println()
 		return responseMessage.Car, nil
 	} else {
-		return responseMessage.Car, fmt.Errorf("erro ao recomendar estação")
+		return responseMessage.Car, fmt.Errorf("erro: %v", responseMessage.Err)
 	}
 }
 
 func HandleReserveStationResponse(responseMessage types.Message) (types.Car, error) {
 	if responseMessage.Status == types.Success {
-		fmt.Println("Estação reservada com sucesso.")
+		fmt.Println("Reserva de estação realizada com sucesso.")
 		return responseMessage.Car, nil
 	} else {
-		return responseMessage.Car, fmt.Errorf("erro ao reservar estação")
+		return responseMessage.Car, fmt.Errorf(responseMessage.Err)
 	}
 }
 
 func HandleRechargeCompleteResponse(responseMessage types.Message) (types.Car, error) {
 	if responseMessage.Status == types.Success {
-		fmt.Println("Recarga completa com sucesso.")
+		fmt.Println("Recarga concluída com sucesso.")
 		return responseMessage.Car, nil
 	} else {
-		return responseMessage.Car, fmt.Errorf("erro ao completar recarga")
+		return responseMessage.Car, fmt.Errorf(responseMessage.Err)
 	}
 }
 func HandleStartRechargeResponse(client *CarClient, responseMessage types.Message) (types.Car, error) {
@@ -240,16 +240,16 @@ func HandleStartRechargeResponse(client *CarClient, responseMessage types.Messag
 			return completeResponse.Car, fmt.Errorf("erro ao concluir recarga: %v", completeResponse.Status)
 		}
 	} else {
-		return responseMessage.Car, fmt.Errorf("erro ao iniciar recarga: %v", responseMessage.Status)
+		return responseMessage.Car, fmt.Errorf("erro ao iniciar recarga: %v", responseMessage.Err)
 	}
 }
 
 func HandlePayRechargeResponse(responseMessage types.Message) (types.Car, error) {
 	if responseMessage.Status == types.Success {
-		fmt.Println("Recarga paga com sucesso.")
+		fmt.Println("Pagamento realizado com sucesso.")
 		return responseMessage.Car, nil
 	} else {
-		return responseMessage.Car, fmt.Errorf("erro ao pagar recarga")
+		return responseMessage.Car, fmt.Errorf(responseMessage.Err)
 	}
 }
 func HandleListStationsResponse(responseMessage types.Message) (types.Car, error) {
@@ -269,52 +269,57 @@ Coordenadas: (x: %d, y: %d)`,
 	}
 }
 
-func startCarMovement(client *CarClient, station types.Station) {
-	ticker := time.NewTicker(1 * time.Second)
-	car := client.car
-	defer ticker.Stop()
-	fmt.Printf("Trajeto do carro %d: para a estação %d\n", car.CarID, station.StationID)
-	coordX := float64(car.CoordX)
-	coordY := float64(car.CoordY)
-	stationX := float64(station.CoordX)
-	stationY := float64(station.CoordY)
+func HandleStartCarMovement(client *CarClient, responseMessage types.Message) (types.Car, error) {
+	if responseMessage.Status == types.Success {
+		station := responseMessage.Station
+		ticker := time.NewTicker(1 * time.Second)
+		car := client.car
+		defer ticker.Stop()
+		fmt.Printf("Trajeto do carro %d: para a estação %d\n", car.CarID, station.StationID)
+		coordX := float64(car.CoordX)
+		coordY := float64(car.CoordY)
+		stationX := float64(station.CoordX)
+		stationY := float64(station.CoordY)
 
-	for {
-		select {
-		case <-ticker.C:
-			if coordX < stationX {
-				coordX += types.CarSpeed
-				if coordX > stationX {
-					coordX = stationX
-				}
-			} else if coordX > stationX {
-				coordX -= types.CarSpeed
+		for {
+			select {
+			case <-ticker.C:
 				if coordX < stationX {
-					coordX = stationX
+					coordX += types.CarSpeed
+					if coordX > stationX {
+						coordX = stationX
+					}
+				} else if coordX > stationX {
+					coordX -= types.CarSpeed
+					if coordX < stationX {
+						coordX = stationX
+					}
+				} else if coordY < stationY {
+					coordY += types.CarSpeed
+					if coordY > stationY {
+						coordY = stationY
+					}
+				} else if coordY > stationY {
+					coordY -= types.CarSpeed
+					if coordY < stationY {
+						coordY = stationY
+					}
 				}
-			} else if coordY < stationY {
-				coordY += types.CarSpeed
-				if coordY > stationY {
-					coordY = stationY
-				}
-			} else if coordY > stationY {
-				coordY -= types.CarSpeed
-				if coordY < stationY {
-					coordY = stationY
-				}
-			}
-			car.CoordX = int(coordX)
-			car.CoordY = int(coordY)
+				car.CoordX = int(coordX)
+				car.CoordY = int(coordY)
 
-			fmt.Printf("Carro %d está em (%d, %d)\n", car.CarID, car.CoordX, car.CoordY)
+				fmt.Printf("Carro %d está em (%d, %d)\n", car.CarID, car.CoordX, car.CoordY)
 
-			if math.Abs(coordX-stationX) < 0.01 && math.Abs(coordY-stationY) < 0.01 {
-				fmt.Printf("Carro %d chegou à estação %d.\n", car.CarID, station.StationID)
-				client.car = car
-				//client.syncCarWithServer()
-				return
+				if math.Abs(coordX-stationX) < 0.01 && math.Abs(coordY-stationY) < 0.01 {
+					fmt.Printf("Carro %d chegou à estação %d.\n", car.CarID, station.StationID)
+					client.car = car
+					//client.syncCarWithServer()
+					return car, nil
+				}
 			}
 		}
+	} else {
+		return responseMessage.Car, fmt.Errorf(responseMessage.Err)
 	}
 }
 
