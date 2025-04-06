@@ -71,7 +71,7 @@ func (s *Server) HandleReserveStationFromStation(message types.Message, conn net
 	if message.Status == types.Error {
 		responseMessage.Status = types.Error
 		responseMessage.Err = message.Err
-		return responseMessage, conn
+		return responseMessage, s.loggedCars[message.Car.CarID]
 	}
 	s.saveCarToFile(message.Car)
 	s.saveStationToFile(message.Station)

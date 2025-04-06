@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"main/types"
+	"slices"
 	"time"
 )
 
@@ -166,13 +167,21 @@ func (c *StationClient) HandleGetStationInfo(message types.Message) types.Messag
 }
 
 func (c *StationClient) HandleReserveStation(message types.Message) types.Message {
-	responseMessage := types.Message{Req: types.ReserveStation, Status: types.Success}
+	responseMessage := types.Message{Req: types.ReserveStation}
 	car := message.Car
+
+	if slices.Contains(c.station.CarList, car.CarID) {
+		responseMessage.Status = types.Error
+		responseMessage.Err = "Carro já está na fila da estação"
+		responseMessage.Car = car
+		responseMessage.Station = c.station
+		return responseMessage
+	}
 
 	c.station.CarList = append(c.station.CarList, car.CarID)
 	c.station.CarsWaiting += 1
 	car.ReservedStation = c.station.StationID
-
+	responseMessage.Status = types.Success
 	responseMessage.Car = car
 	responseMessage.Station = c.station
 

@@ -193,5 +193,6 @@ func (s *Server) GetStationInfo(id int, conn net.Conn) (types.Station, error) {
 	if err != nil {
 		fmt.Println("Erro em GetStationInfo:", err)
 	}
+	fmt.Printf("Carros na estação %d: %d", station.StationID, station.CarsWaiting)
 	return station, err
 }

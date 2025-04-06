@@ -2,7 +2,7 @@ FROM golang:1.22
 
 WORKDIR /app
 
-COPY ./server /app
+COPY ./server /app/server
 
 COPY ./types /app/types
 
@@ -12,8 +12,8 @@ COPY go.mod /app/
 
 RUN go mod download
 
-RUN go build -o server main.go database_funcs.go car_req_handles.go station_req_handles.go
+RUN go build -o server.bin server/main.go server/database_funcs.go server/car_req_handles.go server/station_req_handles.go
 
 EXPOSE 8080
 
-CMD ["./server"]
+CMD ["./server/server.bin"]

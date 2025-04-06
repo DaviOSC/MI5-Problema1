@@ -214,12 +214,10 @@ func HandleRechargeCompleteResponse(responseMessage types.Message) (types.Car, e
 }
 
 func HandleStartRechargeResponse(client *CarClient, responseMessage types.Message) (types.Car, error) {
-	fmt.Println("Recarga iniciada com sucesso.")
 	if responseMessage.Status == types.Success {
-
 		//Espera o tempo de recarga
 		rechargeTime := types.RechargeTime * (float64)(100-client.car.BatteryLevel)
-		fmt.Printf("Esperando %f segundos para simular a recarga...", rechargeTime)
+		fmt.Printf("Esperando %f segundos para simular a recarga...\n", rechargeTime)
 		time.Sleep(time.Second * time.Duration(rechargeTime))
 
 		// Criar a mensagem de conclusão da recarga

@@ -106,7 +106,6 @@ func (s *Server) HandleReserveStation(message types.Message, conn net.Conn) (typ
 	}
 
 	responseMessage.Car = message.Car
-
 	// Envia a mensagem, com as informações do carro,
 	// para a estação que se quer reservar
 	return responseMessage, s.connectedStations[stationID]
