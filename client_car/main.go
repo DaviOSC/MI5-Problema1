@@ -113,7 +113,8 @@ func main() {
 6 - Pagar Recarga
 7 - Listar Estações
 8 - Listar Histórico de Recargas
-9 - Sair`)
+9 - Mover carro para (x, y)
+10 - Sair`)
 		// Ler a escolha do usuário
 		fmt.Scanln(&choice)
 
@@ -184,6 +185,14 @@ Data: %s
 			}
 			continue
 		case "9":
+			x := 0
+			y := 0
+			fmt.Println("Coordenada X:")
+			fmt.Scanln(&x)
+			fmt.Println("Coordenada Y:")
+			fmt.Scanln(&y)
+			MoveCarTo(client, x, y)
+		case "10":
 			/*
 				Antes de sair, envia uma mensagem para que o servidor
 				apague qualquer informação em requisições não finalizadas

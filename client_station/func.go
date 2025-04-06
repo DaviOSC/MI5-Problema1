@@ -160,7 +160,7 @@ func (c *StationClient) HandleListAndChooseStation() (types.Station, error) {
 
 func (c *StationClient) HandleGetStationInfo(message types.Message) types.Message {
 	return types.Message{
-		Req:     types.GetStationInfo,
+		Req:     types.StationUpdate,
 		Station: c.station,
 	}
 }

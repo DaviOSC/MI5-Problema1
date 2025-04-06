@@ -149,7 +149,7 @@ func main() {
 // Cada Handle trata uma requisição recebida do servidor
 func (c *StationClient) HandleRequest(message types.Message) types.Message {
 	switch message.Req {
-	case types.GetStationInfo:
+	case types.StationUpdate:
 		return c.HandleGetStationInfo(message)
 	case types.ReserveStation:
 		return c.HandleReserveStation(message)

@@ -4,22 +4,14 @@
     "user": "401",
     "password": "401",
     "coord_x": 50,
-    "coord_y": 100,
-    "battery_level": 100,
+    "coord_y": 0,
+    "battery_level": 89,
     "recomended_station": 0,
     "reserved_station": 0,
-    "paid_reserved_station": true,
+    "paid_reserved_station": false,
     "pix_code": 401,
     "credit_card_number": 0,
-    "payment_history": [
-      {
-        "payment_id": 1,
-        "from": 10,
-        "to": 401,
-        "value": 100,
-        "timestamp": "2025-04-05T17:26:04.291753259-03:00"
-      }
-    ]
+    "payment_history": []
   },
   {
     "car_id": 7,
@@ -46,6 +38,20 @@
     "reserved_station": 0,
     "paid_reserved_station": false,
     "pix_code": 7,
+    "credit_card_number": 0,
+    "payment_history": null
+  },
+  {
+    "car_id": 0,
+    "user": "",
+    "password": "",
+    "coord_x": 0,
+    "coord_y": 0,
+    "battery_level": 0,
+    "recomended_station": 0,
+    "reserved_station": 0,
+    "paid_reserved_station": false,
+    "pix_code": 0,
     "credit_card_number": 0,
     "payment_history": null
   }

@@ -4,8 +4,10 @@ import (
 	"time"
 )
 
-const CarSpeed = 40
-const RechargeTime = 20
+const CarSpeed = 20                  // Velocidade de movimento do carro (m/s)
+const CarSpeedWhenFullyDischarge = 5 // Velocidade de movimento do carro (m/s)
+const RechargeTime float64 = 0.5     // Quantos segundos para recarregar 1% da bateria
+const BatteryDischarge = 10          // Quantos metros para a bateria descer em 1%
 
 type Payment struct {
 	PaymentID int       `json:"payment_id"`

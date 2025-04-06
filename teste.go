@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"slices"
 	"sync"
 )
 
@@ -22,12 +21,5 @@ func teste2() {
 }
 
 func main() {
-	list := make([]int, 1)
-	for i := range 100 {
-		list = slices.Insert(list, len(list)-1, i)
-	}
-
-	for i := range 100 {
-		fmt.Print(list[i], " ")
-	}
+	fmt.Printf("%d%%", 5)
 }
