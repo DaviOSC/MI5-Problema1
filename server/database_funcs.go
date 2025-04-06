@@ -48,7 +48,7 @@ func (s *Server) saveCarToFile(car types.Car) error {
 		cars = append(cars, car)
 	}
 	// Lista de carros é salva em JSON
-	return s.saveJSONToFile("../data/cars.json", cars)
+	return s.saveJSONToFile("data/cars.json", cars)
 }
 
 // Salvar um posto em um arquivo JSON
@@ -65,12 +65,12 @@ func (s *Server) saveStationToFile(station types.Station) error {
 			// Caso encontre, o Posto é atualizado
 			stations[i] = station
 			fmt.Println("Tentativa de alterar uma estação existente")
-			return s.saveJSONToFile("../data/stations.json", stations)
+			return s.saveJSONToFile("data/stations.json", stations)
 		}
 	}
 	// Se o Posto for novo, é inserido na lista
 	stations = append(stations, station)
-	return s.saveJSONToFile("../data/stations.json", stations)
+	return s.saveJSONToFile("data/stations.json", stations)
 }
 
 // Função para salvar uma estrutura em um arquivo JSON
@@ -93,7 +93,7 @@ func (s *Server) saveJSONToFile(fileName string, v interface{}) error {
 // Retorna uma lista com todos os carros no arquivo JSON
 func (s *Server) listCarsFromFile() ([]types.Car, error) {
 	var cars []types.Car
-	data, err := os.ReadFile("../data/cars.json")
+	data, err := os.ReadFile("data/cars.json")
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +107,7 @@ func (s *Server) listCarsFromFile() ([]types.Car, error) {
 // Retorna uma lista com todos os Postos no arquivo JSON
 func (s *Server) listStationsFromFile() ([]types.Station, error) {
 	var stations []types.Station
-	data, err := os.ReadFile("../data/stations.json")
+	data, err := os.ReadFile("data/stations.json")
 	if err != nil {
 		return nil, err
 	}

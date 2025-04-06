@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 // Estrutura para respresentar os dados do cliente
@@ -174,6 +175,7 @@ func main() {
 				Lista o histórico de pagamentos, não utiliza requisições
 				para o servidor
 			*/
+			timeLocation, _ := time.LoadLocation(types.Location)
 			for _, payment := range client.car.PaymentHistory {
 				fmt.Printf(`
 ID do Pagamento: %d
@@ -181,8 +183,9 @@ ID do Posto: %d
 ID do Carro: %d
 Valor: %d
 Data: %s
-`, payment.PaymentID, payment.From, payment.To, payment.Value, payment.TimeStamp)
+`, payment.PaymentID, payment.From, payment.To, payment.Value, payment.TimeStamp.In(timeLocation).Format("02/01/2006 15:04:05"))
 			}
+
 			continue
 		case "9":
 			x := 0
@@ -267,11 +270,6 @@ Data: %s
 			}
 		case types.ListActiveStations:
 			_, err := HandleListActiveStationsResponse(responseMessage)
-			if err != nil {
-				fmt.Println("Erro:", err)
-			}
-		case types.PaymentHistory:
-			_, err := HandlePaymentHistoryResponse(responseMessage)
 			if err != nil {
 				fmt.Println("Erro:", err)
 			}

@@ -11,10 +11,8 @@
     "station_id": 10,
     "coord_x": 50,
     "coord_y": 100,
-    "car_list": [
-      401
-    ],
-    "cars_waiting": 1,
+    "car_list": [],
+    "cars_waiting": 0,
     "in_use": 0
   },
   {

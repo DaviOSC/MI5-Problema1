@@ -229,7 +229,6 @@ func (s *Server) HandleRechargeComplete(message types.Message, conn net.Conn) (t
 Inicia a recarga no posto
 */
 func (s *Server) HandleStartRecharge(message types.Message, conn net.Conn) (types.Message, net.Conn) {
-	fmt.Println("Aqui, reservedStation: ", message.Car.ReservedStation)
 	if message.Car.ReservedStation == 0 {
 		return types.Message{
 			Status: types.Error,

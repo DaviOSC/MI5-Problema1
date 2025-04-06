@@ -161,24 +161,6 @@ func HandleRegisterCarResponse(responseMessage types.Message) (types.Car, error)
 		return responseMessage.Car, fmt.Errorf("erro: %s", responseMessage.Err)
 	}
 }
-func HandlePaymentHistoryResponse(responseMessage types.Message) (types.Car, error) {
-	if responseMessage.Status == types.Success {
-		fmt.Println("Histórico de pagamentos:")
-		for _, payment := range responseMessage.Car.PaymentHistory {
-			fmt.Printf(
-				`ID do pagamento: %d
-De (CarID): %d
-Para (StationID): %d
-Valor: %d
-Timestamp: %s`, payment.PaymentID, payment.From, payment.To,
-				payment.Value, payment.TimeStamp.String(),
-			)
-		}
-		return responseMessage.Car, nil
-	} else {
-		return responseMessage.Car, fmt.Errorf("erro: %s", responseMessage.Err)
-	}
-}
 
 func HandleGetRecommendedStationResponse(responseMessage types.Message) (types.Car, error) {
 	if responseMessage.Status == types.Success {
